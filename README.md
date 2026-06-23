@@ -2,31 +2,50 @@
 
 **AI-HIL makes it possible for AI agents to work on real embedded hardware.**
 
-AI can already write firmware. The hard part is the hardware loop: build, flash, reset, observe, diagnose, and improve based on what actually happens on a real board.
+AI can already write firmware. The hard part is the embedded feedback loop: build, flash, reset, observe, diagnose, and improve based on what actually happens on a real board.
 
-AI-HIL is a small, local bridge between an AI agent and an embedded development setup. It is not meant to replace existing tools. It makes tools like OpenOCD usable by AI agents in a controlled, structured, and safe way.
+AI-HIL is a local bridge between an AI agent and an embedded development setup. It does not replace existing tools. It makes tools like OpenOCD usable by AI agents in a controlled, structured, and safe way.
 
 ```text
 AI agent
   ↓ MCP
 AI-HIL
   ↓ configuration + policy
-OpenOCD / debug probe / programmer
-  ↓ SWD/JTAG
+OpenOCD / debug probe / programmer / logs / tests
+  ↓
 real embedded target
   ↓ structured feedback
 AI agent
 ```
 
+## Why this exists
+
+AI-assisted software development works best when the agent can run code and see the result. Embedded development is different: the meaningful result often only exists on real hardware.
+
+Without a hardware bridge, an AI agent can edit firmware but cannot reliably answer questions like:
+
+```text
+Did the target flash successfully?
+Did the board boot?
+What did the UART log say?
+Did the firmware crash?
+Did the output pin change?
+Did the hardware behave differently after the patch?
+```
+
+AI-HIL tries to close that gap.
+
+> **AI writes firmware. AI-HIL helps the AI run it on real hardware and understand the result.**
+
 ## What this repository is
 
-This repository starts as a free, practical building block for AI-assisted embedded development.
+This repository starts as a free, practical infrastructure project for AI-assisted embedded development.
 
-The first concrete bridge is an **OpenOCD MCP server written in C**. It should allow an AI agent to do a few hardware actions safely:
+The first concrete bridge is an **OpenOCD MCP bridge**. It should allow an AI agent to perform a small number of hardware actions safely:
 
 ```text
 probe target
-flash firmware
+flash configured firmware
 reset target
 return structured result
 store raw logs
@@ -48,7 +67,7 @@ It is also not:
 
 ```text
 a customer SDK
-a Python package customers need to import
+a library customers need to import
 a generic OpenOCD shell
 a replacement for OpenOCD, J-Link, ST-Link, probe-rs, or vendor tools
 a cloud service
@@ -56,22 +75,20 @@ a complete HIL system
 a pricing or sales story
 ```
 
-The purpose of this repository is to explore and build the missing bridge:
-
-> **AI writes firmware. AI-HIL helps the AI run it on real hardware and understand the result.**
+The purpose of this repository is to explore and build the missing bridge between AI agents and real embedded hardware.
 
 ## Core idea
 
-AI-HIL is the controlled gate between an AI agent and real embedded hardware.
+AI-HIL is the controlled gate between an AI agent and a local embedded hardware setup.
 
 ```text
 AI agent
   ↓
 AI-HIL MCP interface
   ↓
-AI-HIL policy layer
+AI-HIL configuration + policy layer
   ↓
-OpenOCD
+OpenOCD / build tools / UART logs / hardware actions
   ↓
 real target board
 ```
@@ -89,24 +106,25 @@ aihil_get_last_report
 aihil_classify_last_error
 ```
 
-## Why MCP
+## MCP and skills
 
-MCP is the execution boundary between the AI and external tools.
+AI-HIL will likely need both an MCP interface and optional skills, but they have different jobs.
 
-For AI-HIL, MCP is useful because it allows an agent to call hardware actions as tools instead of guessing terminal commands.
+```text
+MCP server: performs hardware actions
+Skill: explains the workflow to the AI agent
+```
 
-In this project:
+For AI-HIL:
 
 ```text
 MCP = the gate to the hardware
-Skill = optional guidance for the agent
+Skill = guidance for the agent
 Configuration = the permission boundary
 Reports = feedback the agent can reason about
 ```
 
-## Why a skill may still exist
-
-A skill does not flash hardware by itself. A skill teaches an agent how to use the available tools properly.
+A skill does not flash hardware by itself. A skill can teach an agent how to use the available tools properly.
 
 For example, a future AI-HIL skill could tell an agent:
 
@@ -119,14 +137,9 @@ For example, a future AI-HIL skill could tell an agent:
 6. Do not request raw OpenOCD commands.
 ```
 
-So the split is:
+The actual hardware access remains behind the MCP server.
 
-```text
-MCP server: performs hardware actions
-Skill: explains the workflow to the AI agent
-```
-
-## First focus: OpenOCD bridge
+## First bridge: OpenOCD
 
 OpenOCD is a good first bridge because many embedded developers already use it with ST-Link, CMSIS-DAP, J-Link, FTDI, and other debug probes.
 
@@ -331,80 +344,52 @@ This avoids building a persistent debug session too early.
 
 A later implementation can add a persistent OpenOCD session through the Tcl interface.
 
+No implementation language is fixed in this README. AI-HIL is a host-side bridge, not firmware running on the target. The implementation language should be chosen for reliable local tooling, MCP support, process handling, configuration parsing, and packaging.
+
 ## Suggested repository layout
 
 ```text
 .
 ├── README.md
 ├── LICENSE
-├── CMakeLists.txt
-├── include/
-│   └── aihil/
-│       ├── config.h
-│       ├── mcp.h
-│       ├── openocd.h
-│       ├── report.h
-│       └── errors.h
-├── src/
-│   ├── main.c
-│   ├── config.c
-│   ├── mcp_stdio.c
-│   ├── openocd_runner.c
-│   ├── openocd_classify.c
-│   ├── report.c
-│   └── util.c
+├── docs/
+│   ├── architecture.md
+│   ├── safety.md
+│   ├── mcp-tools.md
+│   └── aihil-yaml.md
 ├── examples/
 │   └── stm32-stlink/
 │       ├── aihil.yaml
 │       └── README.md
+├── schemas/
+│   └── aihil.schema.json
 ├── skills/
 │   └── aihil-embedded/
 │       └── SKILL.md
-├── tests/
-│   ├── test_command_builder.c
-│   ├── test_error_classifier.c
-│   └── fixtures/
-│       └── openocd_logs/
-└── docs/
-    ├── architecture.md
-    ├── safety.md
-    ├── mcp-tools.md
-    └── aihil-yaml.md
+├── src/
+│   └── README.md
+└── tests/
+    └── README.md
 ```
 
-## Build
+The exact source layout can be decided once the implementation language is chosen.
 
-Target build system: CMake.
+## Local usage shape
+
+The main interface for AI agents is MCP.
+
+Example shape for running AI-HIL as a local MCP stdio server:
 
 ```bash
-git clone https://github.com/<your-org>/aihil.git
-cd aihil
-mkdir -p build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Debug
-cmake --build .
+aihil --config examples/stm32-stlink/aihil.yaml
 ```
 
-Expected binary name:
+For local debugging, the same tool may also expose direct commands:
 
 ```bash
-./aihil
-```
-
-## Run locally
-
-As an MCP stdio server:
-
-```bash
-./aihil --config ../examples/stm32-stlink/aihil.yaml
-```
-
-For local debugging, the same binary can also expose direct commands:
-
-```bash
-./aihil --config aihil.yaml --probe
-./aihil --config aihil.yaml --flash
-./aihil --config aihil.yaml --reset
+aihil --config aihil.yaml --probe
+aihil --config aihil.yaml --flash
+aihil --config aihil.yaml --reset
 ```
 
 The direct commands are for humans debugging the bridge. The main interface for AI agents is MCP.
