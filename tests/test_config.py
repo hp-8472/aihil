@@ -44,6 +44,8 @@ def test_config_schema_exposes_config_yaml_shape() -> None:
     assert schema["properties"]["debugger"]["properties"]["type"]["enum"] == ["openocd"]
     assert "server" not in schema["properties"]
     assert schema["properties"]["permissions"]["properties"]["allow_flash"]["type"] == "boolean"
+    assert schema["properties"]["permissions"]["properties"]["allow_com_write"]["type"] == "boolean"
+    assert schema["properties"]["com_ports"]["additionalProperties"]["required"] == ["device"]
 
 
 def test_config_argument_overrides_default_path(tmp_path: Path) -> None:
@@ -59,6 +61,35 @@ def test_config_root_must_be_mapping(tmp_path: Path) -> None:
         load_config(config_path, work_dir=tmp_path)
 
     assert exc.value.error_type == "config_invalid"
+
+
+def test_named_com_ports_are_loaded(tmp_path: Path) -> None:
+    config_path = write_config(
+        tmp_path / ".aihil" / "config.yaml",
+        base_config()
+        + """
+com_ports:
+  dut_uart:
+    device: "COM5"
+    baudrate: 9600
+    timeout_s: 0.2
+    write_timeout_s: 0.5
+    encoding: "ascii"
+    max_buffer_bytes: 1024
+    max_write_bytes: 128
+permissions:
+  allow_com_read: true
+  allow_com_write: false
+""",
+    )
+
+    config = load_config(config_path, work_dir=tmp_path)
+
+    assert config.com_ports["dut_uart"].device == "COM5"
+    assert config.com_ports["dut_uart"].baudrate == 9600
+    assert config.com_ports["dut_uart"].encoding == "ascii"
+    assert config.permissions.allow_com_read is True
+    assert config.permissions.allow_com_write is False
 
 
 def test_debugger_executable_from_config_is_used(tmp_path: Path) -> None:
