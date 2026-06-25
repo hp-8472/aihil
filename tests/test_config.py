@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from aihil.config import DEFAULT_CONFIG_PATH, ConfigError, load_config, parse_listen, resolve_config_path
+from aihil.config import DEFAULT_CONFIG_PATH, ConfigError, config_schema, load_config, parse_listen, resolve_config_path
 from aihil.debugger import create_debugger_backend
 from aihil.debuggers.openocd import OpenOCDBackend
 
@@ -38,10 +38,27 @@ def test_default_config_path_is_dot_aihil_config_yaml() -> None:
     assert resolve_config_path() == DEFAULT_CONFIG_PATH
 
 
+def test_config_schema_exposes_config_yaml_shape() -> None:
+    schema = config_schema()
+
+    assert schema["properties"]["debugger"]["properties"]["type"]["enum"] == ["openocd"]
+    assert "host" not in schema["properties"]["server"]["properties"]
+    assert schema["properties"]["permissions"]["properties"]["allow_flash"]["type"] == "boolean"
+
+
 def test_config_argument_overrides_default_path(tmp_path: Path) -> None:
     config_path = write_config(tmp_path / "custom.yaml", base_config())
     config = load_config(config_path, work_dir=tmp_path)
     assert config.config_path == config_path
+
+
+def test_config_root_must_be_mapping(tmp_path: Path) -> None:
+    config_path = write_config(tmp_path / ".aihil" / "config.yaml", "false\n")
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(config_path, work_dir=tmp_path)
+
+    assert exc.value.error_type == "config_invalid"
 
 
 def test_server_listen_is_parsed() -> None:
@@ -101,3 +118,36 @@ def test_unknown_debugger_type_is_rejected(tmp_path: Path) -> None:
         create_debugger_backend(load_config(config_path, work_dir=tmp_path))
     assert exc.value.error_type == "config_invalid"
     assert exc.value.details["field"] == "debugger.type"
+
+
+def test_unknown_config_field_is_rejected(tmp_path: Path) -> None:
+    config_path = write_config(
+        tmp_path / ".aihil" / "config.yaml",
+        """
+debugger:
+  type: "openocd"
+  unknown_field: true
+""",
+    )
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(config_path, work_dir=tmp_path)
+
+    assert exc.value.error_type == "config_invalid"
+    assert exc.value.details["field"] == "debugger.unknown_field"
+
+
+def test_config_boolean_must_be_boolean(tmp_path: Path) -> None:
+    config_path = write_config(
+        tmp_path / ".aihil" / "config.yaml",
+        """
+permissions:
+  allow_flash: "false"
+""",
+    )
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(config_path, work_dir=tmp_path)
+
+    assert exc.value.error_type == "config_invalid"
+    assert exc.value.details["field"] == "permissions.allow_flash"

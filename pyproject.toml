@@ -17,6 +17,7 @@ classifiers = [
 ]
 dependencies = [
   "fastapi",
+  "jsonschema",
   "uvicorn",
   "pydantic",
   "PyYAML",
@@ -33,6 +34,9 @@ aihil = "aihil.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+aihil = ["schemas/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

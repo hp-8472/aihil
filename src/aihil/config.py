@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
 import yaml
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError, ValidationError
 
 
 DEFAULT_CONFIG_PATH = Path(".aihil/config.yaml")
@@ -34,8 +38,8 @@ class ConfigError(Exception):
 @dataclass(frozen=True)
 class ServerConfig:
     listen: str = DEFAULT_LISTEN
-    host: str = "127.0.0.1"
-    port: int = 8732
+    host: str = field(default="127.0.0.1", metadata={"schema_exclude": True})
+    port: int = field(default=8732, metadata={"schema_exclude": True})
 
 
 @dataclass(frozen=True)
@@ -46,7 +50,7 @@ class TargetConfig:
 
 @dataclass(frozen=True)
 class DebuggerConfig:
-    type: str = "openocd"
+    type: str = field(default="openocd", metadata={"enum": ["openocd"]})
     executable: str | None = None
     interface_cfg: str = "interface/stlink.cfg"
     target_cfg: str = "target/stm32f4x.cfg"
@@ -104,6 +108,35 @@ class AIHILConfig:
     logs: LogsConfig = field(default_factory=LogsConfig)
 
 
+CONFIG_SCHEMA_ID = "https://aihil.local/schemas/config.schema.json"
+CONFIG_SCHEMA_RESOURCE = "schemas/config.schema.json"
+
+
+def config_schema_text() -> str:
+    return resources.files("aihil").joinpath("schemas").joinpath("config.schema.json").read_text(encoding="utf-8")
+
+
+def config_schema() -> dict[str, Any]:
+    return json.loads(config_schema_text())
+
+
+def validate_config_schema(raw: dict[str, Any], path: str | Path | None = None) -> None:
+    schema = config_schema()
+    try:
+        Draft202012Validator.check_schema(schema)
+        Draft202012Validator(schema).validate(raw)
+    except SchemaError as exc:
+        details: dict[str, Any] = {
+            "schema": CONFIG_SCHEMA_RESOURCE,
+            "schema_error": exc.message,
+        }
+        if path is not None:
+            details["path"] = str(path)
+        raise ConfigError("config_schema_invalid", "Bundled AI-HIL configuration schema is invalid.", **details) from exc
+    except ValidationError as exc:
+        _raise_config_validation_error(exc, path)
+
+
 def resolve_config_path(config_path: str | Path | None = None) -> Path:
     return Path(config_path) if config_path is not None else DEFAULT_CONFIG_PATH
 
@@ -144,6 +177,64 @@ def parse_listen(value: str | None) -> tuple[str, int, str]:
     return host, port, listen
 
 
+def _raise_config_validation_error(error: ValidationError, path: str | Path | None) -> None:
+    field = _schema_error_field(error)
+    details: dict[str, Any] = {"field": field}
+    if path is not None:
+        details["path"] = str(path)
+
+    if error.validator == "additionalProperties":
+        details["allowed_fields"] = _schema_allowed_fields(error)
+        raise ConfigError("config_invalid", "Unknown AI-HIL configuration field.", **details) from error
+
+    if error.validator == "enum":
+        details["allowed_values"] = list(error.validator_value)
+        details["value"] = error.instance
+        raise ConfigError("config_invalid", f"{field} has an unsupported value.", **details) from error
+
+    if error.validator == "type":
+        details["expected_type"] = error.validator_value
+        details["value"] = error.instance
+        raise ConfigError("config_invalid", f"{field} has the wrong type.", **details) from error
+
+    details["schema_error"] = error.message
+    details["value"] = error.instance
+    raise ConfigError("config_invalid", error.message, **details) from error
+
+
+def _schema_error_field(error: ValidationError) -> str:
+    parts = list(error.absolute_path)
+    if error.validator == "additionalProperties":
+        unexpected = _unexpected_schema_property(error)
+        if unexpected is not None:
+            parts.append(unexpected)
+    return _format_field_path(parts)
+
+
+def _format_field_path(parts: list[Any]) -> str:
+    result = ""
+    for part in parts:
+        if isinstance(part, int):
+            result = f"{result}[{part}]" if result else f"[{part}]"
+            continue
+        result = str(part) if not result else f"{result}.{part}"
+    return result or "$"
+
+
+def _unexpected_schema_property(error: ValidationError) -> str | None:
+    if not isinstance(error.instance, dict):
+        return None
+    allowed = set(error.schema.get("properties", {}))
+    for key in error.instance:
+        if not isinstance(key, str) or key not in allowed:
+            return str(key)
+    return None
+
+
+def _schema_allowed_fields(error: ValidationError) -> list[str]:
+    return sorted(str(field_name) for field_name in error.schema.get("properties", {}))
+
+
 def load_config(config_path: str | Path | None = None, work_dir: str | Path | None = None) -> AIHILConfig:
     path = resolve_config_path(config_path)
     base = Path(work_dir).resolve() if work_dir is not None else Path.cwd().resolve()
@@ -155,19 +246,21 @@ def load_config(config_path: str | Path | None = None, work_dir: str | Path | No
         )
 
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         raise ConfigError(
             "config_invalid",
             "AI-HIL configuration file is not valid YAML.",
             path=str(path),
         ) from exc
+    raw = loaded if loaded is not None else {}
     if not isinstance(raw, dict):
         raise ConfigError(
             "config_invalid",
             "AI-HIL configuration root must be a mapping.",
             path=str(path),
         )
+    validate_config_schema(raw, path)
 
     server_raw = _mapping(raw.get("server"), "server")
     host, port, listen = parse_listen(server_raw.get("listen", DEFAULT_LISTEN))

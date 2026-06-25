@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aihil.local/schemas/config.schema.json",
+  "title": "AI-HIL project configuration",
+  "description": "Schema for project-local .aihil/config.yaml files.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "listen": {
+          "type": "string",
+          "default": "127.0.0.1:8732"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "default": "unknown-target"
+        },
+        "controller": {
+          "type": "string",
+          "default": "unknown-controller"
+        }
+      }
+    },
+    "debugger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "default": "openocd",
+          "enum": [
+            "openocd"
+          ]
+        },
+        "executable": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "interface_cfg": {
+          "type": "string",
+          "default": "interface/stlink.cfg"
+        },
+        "target_cfg": {
+          "type": "string",
+          "default": "target/stm32f4x.cfg"
+        },
+        "timeout_s": {
+          "type": "number",
+          "default": 60.0
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowed_roots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "build"
+          ]
+        },
+        "upload_directory": {
+          "type": "string",
+          "default": ".aihil/artifacts"
+        },
+        "allowed_extensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".elf",
+            ".hex",
+            ".bin"
+          ]
+        },
+        "max_upload_size_mb": {
+          "type": "integer",
+          "default": 64
+        },
+        "allow_upload": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "require_existing_file": {
+          "type": "boolean",
+          "default": true
+        },
+        "require_allowed_root": {
+          "type": "boolean",
+          "default": true
+        },
+        "require_allowed_extension": {
+          "type": "boolean",
+          "default": true
+        },
+        "compute_sha256": {
+          "type": "boolean",
+          "default": true
+        },
+        "inspect_known_formats": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow_probe": {
+          "type": "boolean",
+          "default": true
+        },
+        "allow_flash": {
+          "type": "boolean",
+          "default": true
+        },
+        "allow_reset": {
+          "type": "boolean",
+          "default": true
+        },
+        "allow_raw_debugger_commands": {
+          "type": "boolean",
+          "default": false
+        },
+        "allow_mass_erase": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "reports": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "directory": {
+          "type": "string",
+          "default": ".aihil/reports"
+        }
+      }
+    },
+    "logs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "directory": {
+          "type": "string",
+          "default": ".aihil/logs"
+        }
+      }
+    }
+  }
+}

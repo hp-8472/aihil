@@ -14,6 +14,10 @@ python -m pip install -e .
 
 Each firmware project should have its own `.aihil/` directory with `.aihil/config.yaml` for that project's target, debugger, permissions, reports, logs, and artifact roots.
 
+Use `skills/aihil-config-setup/SKILL.md` as the agent-facing workflow for creating or fixing `.aihil/config.yaml`.
+
+If a user says "Install this AI-HIL repo and set it up for this project", install the `aihil` command from the AI-HIL repo, then return to the firmware project and follow `skills/aihil-config-setup/SKILL.md`. Do not copy the AI-HIL source tree into the firmware project unless the user explicitly asks.
+
 ## Project Bootstrap
 
 From the firmware project directory, create and inspect the project-local setup with:
@@ -31,6 +35,12 @@ http://127.0.0.1:8732/mcp
 ```
 
 Each project can include `.mcp.json` for MCP clients that discover project-level MCP configuration.
+
+Create project-level MCP discovery config with:
+
+```bash
+aihil mcp-config > .mcp.json
+```
 
 ## Required Workflow
 

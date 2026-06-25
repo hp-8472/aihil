@@ -26,6 +26,8 @@ Install AI-HIL once on the local machine:
 python -m pip install -e .
 ```
 
+If an agent is given only the AI-HIL repository URL and asked to set it up for the current firmware project, it should clone the AI-HIL repo outside the firmware project, install `aihil` from that clone, read `AGENTS.md`, then follow `skills/aihil-config-setup/SKILL.md` back in the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
+
 Then bootstrap each firmware project separately:
 
 ```bash
@@ -37,6 +39,12 @@ aihil serve --config .aihil/config.yaml
 The installed `aihil` command provides the MCP server. The project-local `.aihil/` directory contains that project's hardware configuration, policy, reports, logs, and artifact roots.
 
 Each project can include MCP discovery config in `.mcp.json`:
+
+```bash
+aihil mcp-config > .mcp.json
+```
+
+Example `.mcp.json`:
 
 ```json
 {
@@ -141,7 +149,7 @@ aihil_classify_last_error
 
 ## MCP and skills
 
-AI-HIL will likely need both an MCP interface and optional skills, but they have different jobs.
+AI-HIL uses both an MCP interface and optional skills, but they have different jobs.
 
 ```text
 MCP server: performs hardware actions
@@ -159,15 +167,15 @@ Reports = feedback the agent can reason about
 
 A skill does not flash hardware by itself. A skill can teach an agent how to use the available tools properly.
 
-For example, a future AI-HIL skill could tell an agent:
+The config setup skill lives at `skills/aihil-config-setup/SKILL.md`. It tells an agent how to create and validate `.aihil/config.yaml` safely:
 
 ```text
-1. Build the firmware first.
-2. Probe the target before flashing.
-3. Flash only the configured image.
-4. Reset after flashing.
-5. Read the report before changing code again.
-6. Do not request raw OpenOCD commands.
+1. Run aihil init if .aihil/config.yaml is missing.
+2. Edit only project-specific fields.
+3. Keep raw debugger commands and mass erase disabled.
+4. Validate with aihil doctor.
+5. Fix config_invalid errors from structured fields.
+6. Report debugger availability issues without weakening policy.
 ```
 
 The actual hardware access remains behind the MCP server.
@@ -195,7 +203,9 @@ return a structured report
 
 ## Example `.aihil/config.yaml`
 
-`.aihil/config.yaml` belongs to the firmware project that owns the hardware setup. It describes the local target, debugger, allowed artifact roots, and what the AI is allowed to do. Create a starter file in each project with `aihil init`.
+`.aihil/config.yaml` belongs to the firmware project that owns the hardware setup. It describes the local target, debugger, allowed artifact roots, and what the AI is allowed to do. Create a starter file in each project with `aihil init`; AI-HIL validates it against the schema bundled with the installed Python package.
+
+If an editor or external tool needs a schema file, export the bundled schema with `aihil schema --output config.schema.json`. Runtime validation always uses the schema from the installed package, not a project-local copy.
 
 ```yaml
 server:

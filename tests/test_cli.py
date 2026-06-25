@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from aihil.__main__ import build_parser, doctor, init_config, mcp_config
+from aihil.__main__ import build_parser, doctor, init_config, mcp_config, schema
 
 
 def test_init_config_writes_starter_config(tmp_path) -> None:
@@ -16,6 +16,17 @@ def test_init_config_writes_starter_config(tmp_path) -> None:
     assert result["ok"] is True
     assert config_path.exists()
     assert "server:" in config_path.read_text(encoding="utf-8")
+    assert "config.schema.json" not in config_path.read_text(encoding="utf-8")
+
+
+def test_schema_command_writes_bundled_schema(tmp_path) -> None:
+    schema_path = tmp_path / "config.schema.json"
+
+    result = schema(str(schema_path))
+
+    assert result["ok"] is True
+    assert schema_path.exists()
+    assert "AI-HIL project configuration" in schema_path.read_text(encoding="utf-8")
 
 
 def test_init_config_does_not_overwrite_without_force(tmp_path) -> None:

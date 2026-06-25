@@ -11,7 +11,7 @@ from typing import Any
 
 import uvicorn
 
-from .config import DEFAULT_CONFIG_PATH, ConfigError, load_config
+from .config import DEFAULT_CONFIG_PATH, ConfigError, config_schema_text, load_config
 from .debugger import create_debugger_backend
 from .server import create_app
 
@@ -75,6 +75,10 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--config", default=None, help="Project config path to write, defaults to .aihil/config.yaml")
     init_parser.add_argument("--force", action="store_true", help="Overwrite an existing config file")
 
+    schema_parser = command_parsers.add_parser("schema", help="Export the bundled .aihil/config.yaml JSON schema")
+    schema_parser.add_argument("--output", default=None, help="Path to write the schema JSON, defaults to stdout")
+    schema_parser.add_argument("--force", action="store_true", help="Overwrite an existing output file")
+
     doctor_parser = command_parsers.add_parser("doctor", help="Validate local AI-HIL setup")
     doctor_parser.add_argument("--config", default=None, help="Path to .aihil/config.yaml")
 
@@ -96,6 +100,14 @@ def main(argv: list[str] | None = None) -> int:
     if command == "init":
         result = init_config(args.config, force=args.force)
         print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["ok"] else 1
+
+    if command == "schema":
+        result = schema(args.output, force=args.force)
+        if args.output is None:
+            print(result["schema"], end="")
+        else:
+            print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["ok"] else 1
 
     if command == "doctor":
@@ -121,6 +133,13 @@ def init_config(config_path: str | None = None, force: bool = False) -> dict[str
         }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(DEFAULT_CONFIG_TEMPLATE, encoding="utf-8")
+    try:
+        load_config(path)
+    except ConfigError as exc:
+        result = exc.to_dict()
+        result["summary"] = "AI-HIL starter configuration was written but failed validation."
+        result["path"] = str(path)
+        return result
     return {
         "ok": True,
         "summary": "AI-HIL starter configuration written.",
@@ -132,6 +151,31 @@ def init_config(config_path: str | None = None, force: bool = False) -> dict[str
             "Run: aihil doctor",
             "Run: aihil serve --config .aihil/config.yaml",
         ],
+    }
+
+
+def schema(output: str | None = None, force: bool = False) -> dict[str, Any]:
+    schema_text = config_schema_text()
+    if output is None:
+        return {
+            "ok": True,
+            "schema": schema_text,
+        }
+
+    path = Path(output)
+    if path.exists() and not force:
+        return {
+            "ok": False,
+            "error_type": "schema_exists",
+            "summary": "AI-HIL configuration schema already exists. Use --force to overwrite it.",
+            "path": str(path),
+        }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(schema_text, encoding="utf-8")
+    return {
+        "ok": True,
+        "summary": "AI-HIL configuration schema written.",
+        "path": str(path),
     }
 
 
