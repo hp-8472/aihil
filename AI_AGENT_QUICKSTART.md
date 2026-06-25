@@ -4,10 +4,25 @@ Use AI-HIL as the local MCP server for embedded hardware actions.
 
 ## Install Once
 
-Install the `aihil` command once on the local machine:
+Install the `aihil` command once on the local machine with `pipx`:
 
 ```bash
-python -m pip install -e .
+pipx install --editable .
+```
+
+On Debian/Ubuntu systems with externally managed Python, install `pipx` through the OS package manager and do not use `--break-system-packages`:
+
+```bash
+sudo apt install pipx
+pipx ensurepath
+```
+
+For local AI-HIL development and tests, use a virtual environment:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
 ```
 
 If you were given only the AI-HIL repository URL and asked to set up the current firmware project, clone the AI-HIL repo outside the firmware project, install `aihil` from that clone, then return to the firmware project. Do not vendor the AI-HIL source tree into the firmware project.

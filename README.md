@@ -30,11 +30,28 @@ AI agent
 
 ## Quick Start For AI Agents
 
-Install AI-HIL once on the local machine:
+Install AI-HIL once on the local machine with `pipx`:
 
 ```bash
-python -m pip install -e .
+pipx install --editable .
 ```
+
+On Debian/Ubuntu systems where Python is externally managed, install `pipx` through the OS package manager instead of using system `pip`:
+
+```bash
+sudo apt install pipx
+pipx ensurepath
+```
+
+For local repository development and tests, use a virtual environment instead:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+```
+
+Do not pass `--break-system-packages`; keep AI-HIL isolated with `pipx` or a project virtual environment.
 
 If an agent is given only the AI-HIL repository URL and asked to set it up for the current firmware project, it should clone the AI-HIL repo outside the firmware project, install `aihil` from that clone, read `AGENTS.md`, then follow `skills/aihil-config-setup/SKILL.md` back in the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
 
