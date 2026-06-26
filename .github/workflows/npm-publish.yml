@@ -4,6 +4,12 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, for example v0.1.1
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,7 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -34,7 +40,7 @@ jobs:
 
       - name: Validate release version
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: >-
           node -e "const tag=process.env.RELEASE_TAG; const pkg=require('./package.json'); const lock=require('./package-lock.json'); const strict=/^v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$/; if(!strict.test(tag)){throw new Error('Release tag must be strict SemVer prefixed with v, got '+tag)} if(tag !== 'v'+pkg.version){throw new Error('Release tag '+tag+' does not match package.json version '+pkg.version)} if(lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version){throw new Error('package-lock.json version does not match package.json version '+pkg.version)}"
 
