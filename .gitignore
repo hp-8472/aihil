@@ -7,3 +7,6 @@ build/
 .aihil/reports/
 .aihil/artifacts/
 .aihil/tmp/
+node_modules/
+dist/
+coverage/

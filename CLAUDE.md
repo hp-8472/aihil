@@ -4,29 +4,27 @@ This file provides guidance to Claude Code when working in this repository.
 
 ## Project Overview
 
-AI-HIL is a Python MCP stdio server for safe embedded hardware-in-the-loop access. It exposes narrow tools for probing, flashing, resetting, configured COM port stimulus/feedback, and reading structured reports from a configured local target.
+AI-HIL is a TypeScript/Node.js MCP stdio server for safe embedded hardware-in-the-loop access. It exposes narrow tools for probing, flashing, resetting, configured COM port stimulus/feedback, and reading structured reports from a configured local target.
 
 ## Installation Model
 
-Install the `aihil` command once on the local machine with `pipx`:
+Install the `aihil` command once on the local machine from npm with:
 
 ```bash
-pipx install --editable .
+npm i -g aihil
 ```
 
-On Debian/Ubuntu systems with externally managed Python, install `pipx` through the OS package manager and do not use `--break-system-packages`:
+From this repository checkout, install with:
 
 ```bash
-sudo apt install pipx
-pipx ensurepath
+npm install --global .
 ```
 
-For local AI-HIL development and tests, use a virtual environment:
+For local AI-HIL development and tests, use the Node.js toolchain:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
+npm install
+npm test
 ```
 
 Each firmware project should contain its own `.aihil/` directory with `.aihil/config.yaml` for that project's target, debugger, named COM ports, permissions, reports, logs, and artifact roots.
@@ -78,19 +76,19 @@ Stop on `permission_denied` and report the local policy restriction.
 ## Tests
 
 ```bash
-pytest
+npm test
 ```
 
 ## Important Files
 
 ```text
-src/aihil/stdio.py        MCP stdio transport loop
-src/aihil/comstdio.py     Plain text COM stdio bridge
-src/aihil/mcp.py          MCP JSON-RPC implementation
-src/aihil/tools.py        Shared tool service used by MCP
-src/aihil/config.py       .aihil/config.yaml parsing and policy
-src/aihil/artifacts.py    Firmware artifact validation
-src/aihil/comports.py     Configured COM port streaming sessions
+src/aihil/stdio.ts        MCP stdio transport loop
+src/aihil/comstdio.ts     Plain text COM stdio bridge
+src/aihil/mcp.ts          MCP JSON-RPC implementation
+src/aihil/tools.ts        Shared tool service used by MCP
+src/aihil/config.ts       .aihil/config.yaml parsing and policy
+src/aihil/artifacts.ts    Firmware artifact validation
+src/aihil/comports.ts     Configured COM port streaming sessions
 src/aihil/debuggers/      Debugger backends
-tests/                    pytest suite
+tests-ts/                 Node-based TypeScript migration tests
 ```
