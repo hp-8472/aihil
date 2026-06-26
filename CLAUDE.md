@@ -8,10 +8,10 @@ AI-HIL is a TypeScript/Node.js MCP stdio server for safe embedded hardware-in-th
 
 ## Installation Model
 
-Install the `aihil` command once on the local machine from GitHub with:
+Install the `aihil` command once on the local machine from npm with:
 
 ```bash
-npm i -g hp-8472/aihil
+npm i -g aihil
 ```
 
 From this repository checkout, install with:

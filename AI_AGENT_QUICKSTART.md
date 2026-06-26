@@ -4,10 +4,10 @@ Use AI-HIL as the local MCP server for embedded hardware actions.
 
 ## Install Once
 
-Install the `aihil` command once on the local machine from GitHub with:
+Install the `aihil` command once on the local machine from npm with:
 
 ```bash
-npm i -g hp-8472/aihil
+npm i -g aihil
 ```
 
 From this repository checkout, install with:
@@ -23,7 +23,7 @@ npm install
 npm test
 ```
 
-If you were given only the AI-HIL repository URL and asked to set up the current firmware project, install AI-HIL with `npm i -g hp-8472/aihil`, then return to the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
+If you were given only the AI-HIL repository URL and asked to set up the current firmware project, install AI-HIL with `npm i -g aihil`, then return to the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
 
 ## Configure Each Project
 

@@ -5,7 +5,7 @@ AI-HIL is a local MCP stdio server for AI agents working with embedded hardware.
 Install the `aihil` command and MCP server once on the local machine:
 
 ```bash
-npm i -g hp-8472/aihil
+npm i -g aihil
 ```
 
 From a repository checkout, use `npm install --global .`.

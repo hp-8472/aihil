@@ -30,10 +30,10 @@ AI agent
 
 ## Quick Start For AI Agents
 
-Install AI-HIL once on the local machine from GitHub with:
+Install AI-HIL once on the local machine from npm with:
 
 ```bash
-npm i -g hp-8472/aihil
+npm i -g aihil
 ```
 
 From this repository checkout, install with:
@@ -51,7 +51,7 @@ npm test
 
 The `aihil` command is a Node.js CLI. The npm package builds TypeScript during installation and installs the `aihil` executable on `PATH` when installed globally.
 
-If an agent is given only the AI-HIL repository URL and asked to set it up for the current firmware project, it should install AI-HIL with `npm i -g hp-8472/aihil`, read `AGENTS.md`, then follow `skills/aihil-config-setup/SKILL.md` back in the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
+If an agent is given only the AI-HIL repository URL and asked to set it up for the current firmware project, it should install AI-HIL with `npm i -g aihil`, read `AGENTS.md`, then follow `skills/aihil-config-setup/SKILL.md` back in the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
 
 Then bootstrap each firmware project separately:
 
