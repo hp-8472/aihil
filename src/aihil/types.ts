@@ -1,0 +1,71 @@
+export type JsonObject = Record<string, any>;
+
+export interface TargetConfig {
+  name: string;
+  controller: string;
+}
+
+export interface DebuggerConfig {
+  type: "openocd";
+  executable: string | null;
+  interface_cfg: string;
+  target_cfg: string;
+  timeout_s: number;
+}
+
+export interface ArtifactsConfig {
+  allowed_roots: string[];
+  upload_directory: string;
+  allowed_extensions: string[];
+  max_upload_size_mb: number;
+  allow_upload: boolean;
+}
+
+export interface ComPortConfig {
+  device: string;
+  baudrate: number;
+  timeout_s: number;
+  write_timeout_s: number;
+  encoding: string;
+  max_buffer_bytes: number;
+  max_write_bytes: number;
+}
+
+export interface ValidationConfig {
+  require_existing_file: boolean;
+  require_allowed_root: boolean;
+  require_allowed_extension: boolean;
+  compute_sha256: boolean;
+  inspect_known_formats: boolean;
+}
+
+export interface PermissionsConfig {
+  allow_probe: boolean;
+  allow_flash: boolean;
+  allow_reset: boolean;
+  allow_com_read: boolean;
+  allow_com_write: boolean;
+  allow_raw_debugger_commands: boolean;
+  allow_mass_erase: boolean;
+}
+
+export interface ReportsConfig {
+  directory: string;
+}
+
+export interface LogsConfig {
+  directory: string;
+}
+
+export interface AIHILConfig {
+  configPath: string;
+  workDir: string;
+  target: TargetConfig;
+  debugger: DebuggerConfig;
+  artifacts: ArtifactsConfig;
+  com_ports: Record<string, ComPortConfig>;
+  validation: ValidationConfig;
+  permissions: PermissionsConfig;
+  reports: ReportsConfig;
+  logs: LogsConfig;
+}

@@ -1,12 +1,14 @@
 # AI-HIL
 
-AI-HIL is a local MCP-over-HTTP server for AI agents working with embedded hardware.
+AI-HIL is a local MCP stdio server for AI agents working with embedded hardware.
 
 Install the `aihil` command and MCP server once on the local machine:
 
 ```bash
-python -m pip install -e .
+npm i -g hp-8472/aihil
 ```
+
+From a repository checkout, use `npm install --global .`.
 
 Each firmware project should contain its own `.aihil/` directory with `.aihil/config.yaml` for that project's target, debugger, permissions, reports, logs, and artifact roots.
 
@@ -15,13 +17,13 @@ Bootstrap each project from the project directory:
 ```bash
 aihil init
 aihil doctor
-aihil serve --config .aihil/config.yaml
+aihil mcp-config > .mcp.json
 ```
 
-MCP endpoint:
+MCP stdio command:
 
 ```text
-http://127.0.0.1:8732/mcp
+aihil mcp-stdio --config .aihil/config.yaml
 ```
 
 Project MCP discovery config:

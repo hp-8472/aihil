@@ -13,7 +13,7 @@ Use this skill when a user asks to set up AI-HIL for a firmware project, create 
 
 Do not hand-write `.aihil/config.yaml` from memory. Use `aihil init` to create the starter config, then make the smallest project-specific edits and validate with `aihil doctor`.
 
-The schema bundled with the installed `aihil` Python package is authoritative. A project-local schema copy is not required for runtime validation.
+The schema bundled with the installed `aihil` Node.js package is authoritative. A project-local schema copy is not required for runtime validation.
 
 ## Safety Boundaries
 
@@ -47,7 +47,7 @@ Only change these fields unless the user explicitly asks for a broader policy ch
 - `debugger.target_cfg`: OpenOCD target config, for example `target/stm32f4x.cfg`.
 - `artifacts.allowed_roots`: firmware build output directories, usually `build`.
 - `artifacts.allowed_extensions`: only add firmware artifact extensions that the project actually emits.
-- `com_ports.<port_id>.device`: approved serial device or pyserial URL for this project, for example `COM5` or `/dev/ttyUSB0`.
+- `com_ports.<port_id>.device`: approved serial device for this project, for example `COM5` or `/dev/ttyUSB0`.
 - `com_ports.<port_id>.baudrate`: serial baud rate for the target or fixture.
 - `com_ports.<port_id>.encoding`: text encoding for decoded feedback, usually `utf-8`.
 

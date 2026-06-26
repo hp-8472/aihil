@@ -6,25 +6,23 @@ Use the MCP server from this repository for hardware actions. Do not use raw Ope
 
 ## Installation Model
 
-Install the `aihil` command once on the local machine with `pipx`:
+Install the `aihil` command once on the local machine from GitHub with:
 
 ```bash
-pipx install --editable .
+npm i -g hp-8472/aihil
 ```
 
-On Debian/Ubuntu systems with externally managed Python, install `pipx` through the OS package manager and do not use `--break-system-packages`:
+From this repository checkout, install with:
 
 ```bash
-sudo apt install pipx
-pipx ensurepath
+npm install --global .
 ```
 
-For local AI-HIL development and tests, use a virtual environment:
+For local AI-HIL development and tests, use the Node.js toolchain:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
+npm install
+npm test
 ```
 
 Each firmware project should have its own `.aihil/` directory with `.aihil/config.yaml` for that project's target, debugger, permissions, reports, logs, and artifact roots.
@@ -116,10 +114,8 @@ Treat structured JSON results as the source of truth. Always inspect `ok`, `erro
 ## Development Commands
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
-pytest
+npm install
+npm test
 aihil init --force
 aihil doctor
 aihil mcp-config

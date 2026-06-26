@@ -30,30 +30,28 @@ AI agent
 
 ## Quick Start For AI Agents
 
-Install AI-HIL once on the local machine with `pipx`:
+Install AI-HIL once on the local machine from GitHub with:
 
 ```bash
-pipx install --editable .
+npm i -g hp-8472/aihil
 ```
 
-On Debian/Ubuntu systems where Python is externally managed, install `pipx` through the OS package manager instead of using system `pip`:
+From this repository checkout, install with:
 
 ```bash
-sudo apt install pipx
-pipx ensurepath
+npm install --global .
 ```
 
-For local repository development and tests, use a virtual environment instead:
+For local repository development and tests, use the Node.js toolchain:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
+npm install
+npm test
 ```
 
-Do not pass `--break-system-packages`; keep AI-HIL isolated with `pipx` or a project virtual environment.
+The `aihil` command is a Node.js CLI. The npm package builds TypeScript during installation and installs the `aihil` executable on `PATH` when installed globally.
 
-If an agent is given only the AI-HIL repository URL and asked to set it up for the current firmware project, it should clone the AI-HIL repo outside the firmware project, install `aihil` from that clone, read `AGENTS.md`, then follow `skills/aihil-config-setup/SKILL.md` back in the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
+If an agent is given only the AI-HIL repository URL and asked to set it up for the current firmware project, it should install AI-HIL with `npm i -g hp-8472/aihil`, read `AGENTS.md`, then follow `skills/aihil-config-setup/SKILL.md` back in the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
 
 Then bootstrap each firmware project separately:
 
@@ -241,7 +239,7 @@ return a structured report
 
 ## Example `.aihil/config.yaml`
 
-`.aihil/config.yaml` belongs to the firmware project that owns the hardware setup. It describes the local target, debugger, allowed artifact roots, and what the AI is allowed to do. Create a starter file in each project with `aihil init`; AI-HIL validates it against the schema bundled with the installed Python package.
+`.aihil/config.yaml` belongs to the firmware project that owns the hardware setup. It describes the local target, debugger, allowed artifact roots, and what the AI is allowed to do. Create a starter file in each project with `aihil init`; AI-HIL validates it against the schema bundled with the installed Node.js package.
 
 If an editor or external tool needs a schema file, export the bundled schema with `aihil schema --output config.schema.json`. Runtime validation always uses the schema from the installed package, not a project-local copy.
 
@@ -455,7 +453,7 @@ artifacts:
 
 ### COM ports are restricted
 
-The agent can open only named COM ports from `.aihil/config.yaml`. It cannot pass arbitrary `COMx`, `/dev/ttyUSBx`, or pyserial URLs at tool-call time.
+The agent can open only named COM ports from `.aihil/config.yaml`. It cannot pass arbitrary `COMx` or `/dev/ttyUSBx` values at tool-call time.
 
 ```yaml
 com_ports:
