@@ -561,7 +561,11 @@ function containsFailureText(output: string): boolean {
 }
 
 function commandForLog(args: string[]): string {
-  return args.map((arg) => (/[\s"]/u.test(arg) ? `"${arg.replace(/"/g, '\\"')}"` : arg)).join(" ");
+  return args.map((arg) => (/[\s"\\]/u.test(arg) ? `"${escapeCommandLogArg(arg)}"` : arg)).join(" ");
+}
+
+function escapeCommandLogArg(arg: string): string {
+  return arg.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function findStm32ProgrammerCli(): string | null {

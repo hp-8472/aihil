@@ -43,8 +43,8 @@ function writeConfig(directory, options = {}) {
   controller: "stm32f4"
 debugger:
   type: "${debuggerType}"
-  executable: "${debuggerExecutable}"
-  probe_id: ${probeId === null ? "null" : `"${probeId}"`}
+  executable: ${JSON.stringify(debuggerExecutable)}
+  probe_id: ${probeId === null ? "null" : JSON.stringify(probeId)}
   interface: "SWD"
   interface_cfg: "interface/stlink.cfg"
   target_cfg: "target/stm32f4x.cfg"
@@ -221,6 +221,30 @@ test("stlink requires flash address for bin artifacts", async () => {
         assert.match(result.summary, /debugger\.flash_address/);
       },
       { debuggerType: "stlink" },
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("stlink command logs escape backslashes", async () => {
+  const directory = tempDir();
+  try {
+    const debuggerExecutable = "tools\\fake-stlink.js";
+    const resolvedFakeStlink = path.resolve(directory, debuggerExecutable);
+    mkdirSync(path.dirname(resolvedFakeStlink), { recursive: true });
+    writeFileSync(resolvedFakeStlink, readFileSync(fakeStlink, "utf8"));
+
+    await withService(
+      directory,
+      async (service) => {
+        const probe = await mcpToolCall(service, "aihil_probe_target");
+        assert.equal(probe.ok, true);
+
+        const log = JSON.parse(readFileSync(path.resolve(directory, String(probe.log_path)), "utf8"));
+        assert.equal(log.command.includes("tools\\\\fake-stlink.js"), true);
+      },
+      { debuggerType: "stlink", debuggerExecutable },
     );
   } finally {
     rmSync(directory, { recursive: true, force: true });
