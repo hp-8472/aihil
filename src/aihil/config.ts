@@ -107,11 +107,12 @@ export function loadConfig(configPath?: string | null, workDir?: string | null):
   const targetRaw = mapping(raw.target, "target");
   const debuggerRaw = mapping(raw.debugger, "debugger");
   const debuggerType = String(debuggerRaw.type ?? "openocd");
-  if (debuggerType !== "openocd") {
+  const allowedDebuggerTypes = ["openocd", "stlink"];
+  if (!allowedDebuggerTypes.includes(debuggerType)) {
     throw new ConfigError("config_invalid", "Unsupported debugger.type.", {
       field: "debugger.type",
       value: debuggerType,
-      allowed_values: ["openocd"],
+      allowed_values: allowedDebuggerTypes,
     });
   }
   const artifactsRaw = mapping(raw.artifacts, "artifacts");
@@ -229,10 +230,13 @@ function targetConfig(raw: JsonObject): TargetConfig {
 
 function debuggerConfig(raw: JsonObject, debuggerType: string): DebuggerConfig {
   return {
-    type: debuggerType as "openocd",
+    type: debuggerType as "openocd" | "stlink",
     executable: optionalString(raw.executable),
+    probe_id: optionalString(raw.probe_id),
+    interface: String(raw.interface ?? "SWD"),
     interface_cfg: String(raw.interface_cfg ?? "interface/stlink.cfg"),
     target_cfg: String(raw.target_cfg ?? "target/stm32f4x.cfg"),
+    flash_address: optionalString(raw.flash_address),
     timeout_s: Number(raw.timeout_s ?? 60),
   };
 }

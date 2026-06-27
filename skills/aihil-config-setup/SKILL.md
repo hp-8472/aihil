@@ -49,6 +49,9 @@ Only change these fields unless the user explicitly asks for a broader policy ch
 - `target.name`: board or project name, for example `fan-controller-v1`.
 - `target.controller`: MCU or family, for example `stm32f4`.
 - `debugger.executable`: usually `openocd` or `null` to use `PATH`.
+- `debugger.probe_id`: optional debug probe serial number when multiple probes are connected.
+- `debugger.interface`: direct debugger interface such as `SWD` when `debugger.type` is `stlink`.
+- `debugger.flash_address`: required for `.bin` artifacts when `debugger.type` is `stlink`; not needed for `.elf` or `.hex`.
 - `debugger.interface_cfg`: OpenOCD interface config, for example `interface/stlink.cfg`.
 - `debugger.target_cfg`: OpenOCD target config, for example `target/stm32f4x.cfg`.
 - `artifacts.allowed_roots`: firmware build output directories, usually `build`.

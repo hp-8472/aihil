@@ -16,6 +16,7 @@ export const DEFAULT_CONFIG_TEMPLATE = `target:
 debugger:
   type: "openocd"
   executable: null
+  probe_id: null
   interface_cfg: "interface/stlink.cfg"
   target_cfg: "target/stm32f4x.cfg"
   timeout_s: 60
@@ -157,6 +158,7 @@ function initNextSteps(availableComPorts: JsonObject): string[] {
     "Keep this .aihil/config.yaml with the firmware project; install aihil only once per machine.",
     "Edit target.name and target.controller for your board.",
     "Set debugger.interface_cfg and debugger.target_cfg for your OpenOCD setup.",
+    "If multiple debug probes are connected, set debugger.probe_id to the intended probe serial number.",
   ];
   if (availableComPorts.ok) {
     const ports = Array.isArray(availableComPorts.ports) ? availableComPorts.ports : [];

@@ -6,10 +6,13 @@ export interface TargetConfig {
 }
 
 export interface DebuggerConfig {
-  type: "openocd";
+  type: "openocd" | "stlink";
   executable: string | null;
+  probe_id: string | null;
+  interface: string;
   interface_cfg: string;
   target_cfg: string;
+  flash_address: string | null;
   timeout_s: number;
 }
 
