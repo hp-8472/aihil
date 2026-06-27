@@ -15,6 +15,8 @@ import { fc, safePathSegment } from "./property-arbitraries.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fakeOpenocd = path.join(root, "tests-ts", "fixtures", "fake-openocd.js").replace(/\\/g, "/");
+const fakeStlink = path.join(root, "tests-ts", "fixtures", "fake-stlink.js").replace(/\\/g, "/");
+const fakeStlinkUnconfirmed = path.join(root, "tests-ts", "fixtures", "fake-stlink-unconfirmed.js").replace(/\\/g, "/");
 const tests = [];
 
 function test(name, fn) {
@@ -28,6 +30,10 @@ function tempDir() {
 function writeConfig(directory, options = {}) {
   const allowUpload = options.allowUpload ?? true;
   const maxUploadSizeMb = options.maxUploadSizeMb ?? 1;
+  const probeId = options.probeId ?? null;
+  const debuggerType = options.debuggerType ?? "openocd";
+  const debuggerExecutable = options.debuggerExecutable ?? (debuggerType === "stlink" ? fakeStlink : fakeOpenocd);
+  const flashAddress = options.flashAddress ?? null;
   const configPath = path.join(directory, ".aihil", "config.yaml");
   mkdirSync(path.dirname(configPath), { recursive: true });
   writeFileSync(
@@ -36,10 +42,13 @@ function writeConfig(directory, options = {}) {
   name: "example-target"
   controller: "stm32f4"
 debugger:
-  type: "openocd"
-  executable: "${fakeOpenocd}"
+  type: "${debuggerType}"
+  executable: ${JSON.stringify(debuggerExecutable)}
+  probe_id: ${probeId === null ? "null" : JSON.stringify(probeId)}
+  interface: "SWD"
   interface_cfg: "interface/stlink.cfg"
   target_cfg: "target/stm32f4x.cfg"
+  flash_address: ${flashAddress === null ? "null" : `"${flashAddress}"`}
   timeout_s: 5
 artifacts:
   allowed_roots: ["build"]
@@ -117,7 +126,126 @@ test("config loads defaults", () => {
   try {
     const config = loadConfig(writeConfig(directory), directory);
     assert.equal(config.target.name, "example-target");
+    assert.equal(config.debugger.probe_id, null);
     assert.deepEqual(config.artifacts.allowed_extensions, [".elf", ".hex", ".bin"]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("openocd passes configured probe id", async () => {
+  const directory = tempDir();
+  try {
+    await withService(
+      directory,
+      async (service) => {
+        const probe = await mcpToolCall(service, "aihil_probe_target");
+        assert.equal(probe.ok, true);
+        const logPath = path.join(directory, probe.log_path);
+        assert.match(readFileSync(logPath, "utf8"), /adapter serial STLINK123/);
+      },
+      { probeId: "STLINK123" },
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("stlink backend probes and flashes with probe id", async () => {
+  const directory = tempDir();
+  try {
+    const firmware = path.join(directory, "build", "firmware.elf");
+    mkdirSync(path.dirname(firmware), { recursive: true });
+    writeFileSync(firmware, Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x66]));
+    await withService(
+      directory,
+      async (service) => {
+        const info = await mcpToolCall(service, "aihil_debugger_info");
+        assert.equal(info.ok, true);
+        assert.equal(info.backend, "stlink");
+
+        const probe = await mcpToolCall(service, "aihil_probe_target");
+        assert.equal(probe.ok, true);
+        assert.equal(probe.backend, "stlink");
+
+        const flash = await mcpToolCall(service, "aihil_flash_firmware", { image_path: "build/firmware.elf" });
+        assert.equal(flash.ok, true);
+        assert.equal(flash.operation_result.confirmed, true);
+        assert.deepEqual(flash.operation_result.matched_success_text, ["Download verified successfully"]);
+        const logPath = path.join(directory, flash.log_path);
+        const logText = readFileSync(logPath, "utf8");
+        assert.match(logText, /port=SWD/);
+        assert.match(logText, /sn=STLINK123/);
+        assert.match(logText, /-w/);
+        assert.match(logText, /-v/);
+        assert.match(logText, /-rst/);
+      },
+      { debuggerType: "stlink", probeId: "STLINK123" },
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("stlink rejects unconfirmed successful exit", async () => {
+  const directory = tempDir();
+  try {
+    await withService(
+      directory,
+      async (service) => {
+        const result = await mcpToolCall(service, "aihil_reset_target", { mode: "run" });
+        assert.equal(result.ok, false);
+        assert.equal(result.error_type, "reset_failed");
+        assert.equal(result.backend_error_type, "reset_unconfirmed");
+        assert.equal(result.operation_result.confirmed, false);
+      },
+      { debuggerType: "stlink", debuggerExecutable: fakeStlinkUnconfirmed },
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("stlink requires flash address for bin artifacts", async () => {
+  const directory = tempDir();
+  try {
+    const firmware = path.join(directory, "build", "firmware.bin");
+    mkdirSync(path.dirname(firmware), { recursive: true });
+    writeFileSync(firmware, Buffer.from([0x01, 0x02, 0x03, 0x04]));
+    await withService(
+      directory,
+      async (service) => {
+        const result = await mcpToolCall(service, "aihil_flash_firmware", { image_path: "build/firmware.bin" });
+        assert.equal(result.ok, false);
+        assert.equal(result.error_type, "invalid_argument");
+        assert.match(result.summary, /debugger\.flash_address/);
+      },
+      { debuggerType: "stlink" },
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("stlink command logs escape backslashes", async () => {
+  const directory = tempDir();
+  try {
+    const debuggerExecutable = "tools\\fake-stlink.js";
+    const resolvedFakeStlink = path.resolve(directory, debuggerExecutable);
+    mkdirSync(path.dirname(resolvedFakeStlink), { recursive: true });
+    writeFileSync(resolvedFakeStlink, readFileSync(fakeStlink, "utf8"));
+
+    await withService(
+      directory,
+      async (service) => {
+        const probe = await mcpToolCall(service, "aihil_probe_target");
+        assert.equal(probe.ok, true);
+
+        const log = JSON.parse(readFileSync(path.resolve(directory, String(probe.log_path)), "utf8"));
+        assert.equal(log.command.includes("tools\\\\fake-stlink.js"), true);
+      },
+      { debuggerType: "stlink", debuggerExecutable },
+    );
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

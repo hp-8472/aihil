@@ -28,7 +28,8 @@
           "type": "string",
           "default": "openocd",
           "enum": [
-            "openocd"
+            "openocd",
+            "stlink"
           ]
         },
         "executable": {
@@ -38,6 +39,24 @@
           ],
           "default": null
         },
+        "probe_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional debug probe identifier or serial number used when multiple debug probes are connected.",
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "default": null
+        },
+        "interface": {
+          "type": "string",
+          "description": "Debug transport/interface used by direct debugger backends such as stlink.",
+          "default": "SWD",
+          "enum": [
+            "SWD",
+            "JTAG"
+          ]
+        },
         "interface_cfg": {
           "type": "string",
           "default": "interface/stlink.cfg"
@@ -45,6 +64,15 @@
         "target_cfg": {
           "type": "string",
           "default": "target/stm32f4x.cfg"
+        },
+        "flash_address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Start address for raw .bin firmware images when the selected backend requires one.",
+          "pattern": "^(0x[0-9A-Fa-f]+|[0-9]+)$",
+          "default": null
         },
         "timeout_s": {
           "type": "number",

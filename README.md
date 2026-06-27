@@ -254,6 +254,7 @@ target:
 debugger:
   type: "openocd"
   executable: null
+  probe_id: null
   interface_cfg: "interface/stlink.cfg"
   target_cfg: "target/stm32f4x.cfg"
   timeout_s: 60
@@ -279,7 +280,21 @@ permissions:
   allow_mass_erase: false
 ```
 
-Add `com_ports` only for serial ports that are intentionally part of the project setup.
+Set `debugger.probe_id` to the intended ST-Link/debug probe serial number when multiple probes are connected. Add `com_ports` only for serial ports that are intentionally part of the project setup.
+
+To use ST-Link directly through STM32CubeProgrammer instead of OpenOCD, set `debugger.type` to `stlink`:
+
+```yaml
+debugger:
+  type: "stlink"
+  executable: "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe"
+  probe_id: null
+  interface: "SWD"
+  flash_address: null
+  timeout_s: 60
+```
+
+Use `debugger.probe_id` when more than one ST-Link is attached. For raw `.bin` files, set `debugger.flash_address`, for example `0x08000000`; `.elf` and `.hex` artifacts carry their own addresses.
 
 ## Expected Output
 
