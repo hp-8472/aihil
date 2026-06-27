@@ -6,8 +6,11 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-28
+
 ### Added
 
+- ST-Link debugger backend through STM32CubeProgrammer CLI with safe probe, flash, reset, report, and error-classification behavior.
 - Dependency Review and OSSF Scorecard workflows for pull-request and repository hardening signals.
 - `npm-shrinkwrap.json` as the authoritative publishable lockfile for the CLI dependency tree.
 - Release SBOM generation and artifact attestations for GitHub Release tarballs.
@@ -16,6 +19,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 ### Changed
 
 - Node.js support is now explicit for Node.js 22.14 through 24, with CI covering both supported runtime lines on Linux, macOS, and Windows.
+- CodeQL and Scorecards workflows now cover branch and pull-request commits without racing SAST result uploads.
 - Release and contributor documentation now describe SBOMs, attestations, npm provenance, and branch-protection expectations.
 
 ## [0.1.1] - 2026-06-26
