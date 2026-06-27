@@ -2,7 +2,7 @@
 
 [![Node CI](https://github.com/hp-8472/aihil/actions/workflows/ci.yml/badge.svg)](https://github.com/hp-8472/aihil/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/hp-8472/aihil/actions/workflows/codeql.yml/badge.svg)](https://github.com/hp-8472/aihil/actions/workflows/codeql.yml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/hp-8472/aihil/badge)](https://securityscorecards.dev/viewer/?uri=github.com/hp-8472/aihil)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/hp-8472/aihil/badge)](https://scorecard.dev/viewer/?uri=github.com/hp-8472/aihil)
 [![npm version](https://img.shields.io/npm/v/aihil.svg)](https://www.npmjs.com/package/aihil)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
