@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import fc from "fast-check";
 import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -12,6 +11,7 @@ import { runStdioServer } from "../dist/stdio.js";
 import { AIHILToolService } from "../dist/tools.js";
 import { initConfig, mcpConfig, schema } from "../dist/main.js";
 import { Readable, Writable } from "node:stream";
+import { fc, safePathSegment } from "./property-arbitraries.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fakeOpenocd = path.join(root, "tests-ts", "fixtures", "fake-openocd.js").replace(/\\/g, "/");
@@ -24,13 +24,6 @@ function test(name, fn) {
 function tempDir() {
   return mkdtempSync(path.join(tmpdir(), "aihil-ts-"));
 }
-
-const safePathSegment = fc
-  .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"), {
-    minLength: 1,
-    maxLength: 12,
-  })
-  .map((characters) => characters.join(""));
 
 function writeConfig(directory, options = {}) {
   const allowUpload = options.allowUpload ?? true;
