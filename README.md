@@ -31,7 +31,7 @@ Report bugs and request enhancements through [GitHub Issues](https://github.com/
 
 ## Quick Start
 
-### Install from npm for a firmware project
+### Human CLI/MCP setup
 
 ```bash
 npm i -g aihil
@@ -43,13 +43,13 @@ aihil mcp-config > .mcp.json
 
 Use this path when adding AI-HIL to an existing firmware project. AI-HIL requires Node.js 16.16 or newer with npm; current Node.js LTS is recommended. If `npm i -g aihil` reports an old Node.js or `engines` error, install or activate a supported runtime first and rerun the install. Do not bypass the requirement with `--force`, `--ignore-engines`, or an older AI-HIL version. Each project gets its own `.aihil/config.yaml` for target, debugger, artifact roots, permissions, reports, logs, and optional COM ports. If setup fails, start with [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
-If you explicitly need the current GitHub repository version instead of the latest npm release, install it directly without cloning into the firmware project:
+If the npm registry install fails after Node.js/npm are available and accepted by this repository, install directly from GitHub without cloning into the firmware project:
 
 ```bash
 npm i -g github:hp-8472/aihil
 ```
 
-The npm and GitHub npm install paths install only the `aihil` CLI/MCP server. They do not install, register, or update agent skills.
+The npm and GitHub npm install paths install only the `aihil` CLI/MCP server. They do not install, register, or update agent skills. LLM/AI-agent setup instructions live in [`AGENTS.md`](AGENTS.md).
 
 ### Run the supported Nucleo demo
 
@@ -99,15 +99,11 @@ aihil doctor
 aihil mcp-config > .mcp.json
 ```
 
-Run `cmake --preset Debug` and then `cmake --build --preset Debug` before asking an agent to flash `build/Debug/nucleo-f446re_demo.elf`.
+Run `cmake --preset Debug` and then `cmake --build --preset Debug` before flashing `build/Debug/nucleo-f446re_demo.elf`.
 
 If OpenOCD is not on `PATH` or serial feedback is needed, edit the local `.aihil/config.yaml` before running `aihil doctor`. Do not commit machine-specific `.aihil/` files from the demo project.
 
-Open Claude Code, opencode, Codex, or another MCP-capable coding agent in `examples/nucleo-f446re_demo` and ask:
-
-```text
-Use AI-HIL to probe the target, flash build/Debug/nucleo-f446re_demo.elf, reset it in run mode, read the last report, and read the configured COM port if one is available.
-```
+For agent-driven flashing, open the project in your MCP-capable coding agent and use the agent-facing instructions in `AGENTS.md`.
 
 Expected firmware-in-the-loop path:
 
@@ -152,15 +148,12 @@ AI agents can edit firmware quickly, but embedded development only speeds up whe
 
 This README is for human developers and hardware operators.
 
-Agent-facing instructions in this source repository live in:
+Human-facing docs:
 
-- [`AGENTS.md`](AGENTS.md)
-- [`AI_AGENT_QUICKSTART.md`](AI_AGENT_QUICKSTART.md)
-- [`skills/aihil-config-setup/SKILL.md`](skills/aihil-config-setup/SKILL.md)
+- `README.md`: overview, human setup, expected outputs, and operator guidance.
+- `TROUBLESHOOTING.md`: diagnostics for setup and hardware failures.
 
-The skill file is a repository-local agent asset. It is not installed by the npm package.
-
-Troubleshooting lives in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
+LLM/AI-agent instructions start in [`AGENTS.md`](AGENTS.md). Agent setup details are intentionally not duplicated in this README.
 
 ## Supported First Path
 
@@ -530,16 +523,6 @@ The default model is:
 |-- tests-ts/
 `-- package.json
 ```
-
-## Agent Entry Point
-
-If you want an AI coding agent to set up a firmware project with AI-HIL, open the firmware project and say:
-
-```text
-Install https://github.com/hp-8472/aihil and use it for this firmware project.
-```
-
-The agent should install the `aihil` CLI/MCP server, return to the firmware project, and follow `AGENTS.md` and `AI_AGENT_QUICKSTART.md`. Installing `aihil` does not install an agent skill; the repository-local `skills/aihil-config-setup/SKILL.md` is available only from a source checkout. The agent should not vendor the AI-HIL source tree into the firmware project unless you explicitly ask for that.
 
 ## License
 

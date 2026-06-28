@@ -23,23 +23,38 @@ If the board, debugger, COM port, or artifact path cannot be inferred, ask one c
 Fast path:
 
 1. If `aihil --version` works, do not reinstall. On Windows, also try `aihil.cmd --version`.
-2. If AI-HIL is missing, install the `aihil` command once on the local machine from npm:
+2. If AI-HIL is missing, first try installing the `aihil` command once on the local machine from npm:
 
 ```bash
 npm i -g aihil
 ```
 
-3. If the user explicitly asked for the GitHub repo version, or the npm registry package rejects a Node.js version accepted by this repository, install directly from GitHub:
+3. If that npm registry install fails after Node.js/npm are available and accepted by this repository, install directly from GitHub:
 
 ```bash
 npm i -g github:hp-8472/aihil
 ```
 
-Installing from npm or GitHub installs only the `aihil` CLI/MCP server. It does not install, register, or update agent skills.
+Installing from npm or GitHub installs only the `aihil` CLI/MCP server. It does not install, register, or update agent skills. When an AI agent is asked to install AI-HIL, the agent must install the skills separately as an agent setup step.
 
 If the host has no Node.js or an old Node.js, keep going by installing or activating a supported Node.js/npm runtime, then rerun `npm i -g aihil`. Current Node.js LTS is fine, but the agent does not need to pin a specific Node.js patch version; any runtime accepted by `package.json` is fine. An outdated Node.js is a remediable setup prerequisite, not a reason to refuse the AI-HIL setup. Prefer an existing version manager such as `nvm`, `fnm`, Volta, or `asdf`, or the local platform package manager such as `winget install OpenJS.NodeJS.LTS` on Windows or `brew install node` on macOS. If the safe local install path is unclear, ask one concise question.
 
 Do not use `--force`, `--ignore-engines`, or an older AI-HIL version to bypass the Node.js requirement.
+
+## Install Agent Skill
+
+Agent-driven AI-HIL installation includes installing `skills/aihil-config-setup/SKILL.md` into the active agent's user-level skill directory after the `aihil` command is installed.
+
+If this source checkout is not available, clone or fetch the AI-HIL repository outside the firmware project only for the skill source, then remove that temporary checkout if it is no longer needed.
+
+Known user-level skill destinations:
+
+- opencode: `$HOME/.config/opencode/skills/aihil-config-setup/SKILL.md`.
+- Claude Code: `$HOME/.claude/skills/aihil-config-setup/SKILL.md`.
+
+For other skill-capable agents, use that agent's documented user-level skill directory. If the active agent has no skill mechanism or the destination cannot be determined, ask one concise question instead of silently skipping skill installation.
+
+Do not rely on npm for skills, and do not add npm `postinstall` hooks for skill installation. Skill installation is an agent workflow responsibility, not package-manager behavior.
 
 From this repository checkout for AI-HIL development, install dependencies first and then link the checkout globally:
 
@@ -55,7 +70,7 @@ npm install
 npm test
 ```
 
-If you were given only the AI-HIL repository URL and asked to set up the current firmware project, install AI-HIL with the fast path above, then return to the firmware project. Do not expect a skill to be installed, and do not vendor the AI-HIL source tree into the firmware project.
+If you were given only the AI-HIL repository URL and asked to set up the current firmware project, install AI-HIL with the fast path above, install the AI-HIL skill into the active agent's skill directory, then return to the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
 
 ## Configure Each Project
 
@@ -67,7 +82,7 @@ aihil init
 
 Edit `.aihil/config.yaml` for the local board, OpenOCD interface, target config, allowed firmware artifact roots, and any named COM ports.
 
-Agents should follow this workflow: use `aihil init`, edit only project-specific fields, keep safety policy restrictive, then validate with `aihil doctor`. If this source checkout is available, the optional repository-local `skills/aihil-config-setup/SKILL.md` contains the same setup workflow in skill form.
+Agents should follow `skills/aihil-config-setup/SKILL.md` for the exact setup workflow: use `aihil init`, edit only project-specific fields, keep safety policy restrictive, then validate with `aihil doctor`.
 
 Keep `.aihil/` with the project because it defines that project's hardware policy, reports, logs, and allowed artifact locations. Do not reinstall the MCP server inside every project.
 

@@ -4,7 +4,7 @@ AI-HIL is a local MCP stdio server that gives AI agents safe, structured access 
 
 Use the MCP server from this repository for hardware actions. Do not use raw OpenOCD commands or arbitrary shell commands for flashing, probing, or resetting hardware when an AI-HIL MCP tool is available.
 
-This file is for AI agents. Humans should start with `README.md` and `TROUBLESHOOTING.md`; agents should use this file and `AI_AGENT_QUICKSTART.md`. When working from this source checkout, the optional repository-local skill lives at `skills/aihil-config-setup/SKILL.md`.
+This file is for AI agents. Humans should start with `README.md` and `TROUBLESHOOTING.md`; agents should use this file, `AI_AGENT_QUICKSTART.md`, and `skills/aihil-config-setup/SKILL.md`.
 
 ## Supported First Path
 
@@ -38,7 +38,22 @@ npm i -g aihil
 npm i -g github:hp-8472/aihil
 ```
 
-Installing from npm or GitHub installs only the `aihil` CLI/MCP server. It does not install, register, or update agent skills.
+Installing from npm or GitHub installs only the `aihil` CLI/MCP server. It does not install, register, or update agent skills. When an AI agent is asked to install AI-HIL, the agent must install the skills separately as an agent setup step.
+
+## Agent Skill Installation
+
+Agent-driven AI-HIL installation includes skill installation. Do this after the `aihil` command is installed and before setting up the firmware project.
+
+Use `skills/aihil-config-setup/SKILL.md` from this repository as the source. If this source checkout is not available, clone or fetch the AI-HIL repository outside the firmware project only for the skill source, then remove that temporary checkout if it is no longer needed.
+
+Install the skill into the active agent's user-level skill directory. Known locations:
+
+- opencode: `$HOME/.config/opencode/skills/aihil-config-setup/SKILL.md`.
+- Claude Code: `$HOME/.claude/skills/aihil-config-setup/SKILL.md`.
+
+For other skill-capable agents, use that agent's documented user-level skill directory. If the active agent has no skill mechanism or the destination cannot be determined, ask one concise question instead of silently skipping skill installation.
+
+Do not rely on npm for skills, and do not add npm `postinstall` hooks for skill installation. Skill installation is an agent workflow responsibility, not package-manager behavior.
 
 If Node.js is missing or too old for AI-HIL's `engines`, do not refuse or stop at the error. Treat it as a host setup prerequisite: install or activate a supported Node.js/npm runtime, then rerun the AI-HIL install. Current Node.js LTS is fine, but do not pin a specific Node.js patch version unless the operator asks for that version; any runtime accepted by `package.json` is fine. Prefer an existing version manager such as `nvm`, `fnm`, Volta, or `asdf`, or the local platform package manager such as `winget install OpenJS.NodeJS.LTS` on Windows or `brew install node` on macOS. If no safe local installer is apparent, ask one concise question about how the operator wants Node.js installed.
 
@@ -60,9 +75,9 @@ npm test
 
 Each firmware project should have its own `.aihil/` directory with `.aihil/config.yaml` for that project's target, debugger, permissions, reports, logs, and artifact roots.
 
-`skills/aihil-config-setup/SKILL.md` is a repository-local agent asset, not an npm-installed file. Use it only when this repository checkout is available. Do not copy it into an agent's global skill directory unless the user explicitly asks for that.
+Use `skills/aihil-config-setup/SKILL.md` as the agent-facing workflow for creating or fixing `.aihil/config.yaml`. If the user asked the agent to install AI-HIL, this skill must already have been installed into the active agent's skill directory by the agent setup step above.
 
-If a user says "Install this AI-HIL repo and set it up for this project", install the `aihil` command from the AI-HIL repo, then return to the firmware project and follow this file and `AI_AGENT_QUICKSTART.md`. Do not expect a skill to be installed, and do not copy the AI-HIL source tree into the firmware project unless the user explicitly asks.
+If a user says "Install this AI-HIL repo and set it up for this project", install the `aihil` command, install the AI-HIL skills into the active agent's skill directory, then return to the firmware project and follow `skills/aihil-config-setup/SKILL.md`. Do not copy the AI-HIL source tree into the firmware project unless the user explicitly asks.
 
 ## Project Bootstrap
 
