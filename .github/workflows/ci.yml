@@ -2,7 +2,15 @@ name: Node CI
 
 on:
   push:
+    branches:
+      - master
   pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -68,3 +76,25 @@ jobs:
 
       - name: Check package contents
         run: npm run pack:check
+
+  required-ci:
+    name: Required CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - audit
+      - test
+    if: ${{ always() }}
+    steps:
+      - name: Check required jobs
+        shell: bash
+        run: |
+          if [[ "${{ needs.audit.result }}" != "success" ]]; then
+            echo "Production dependency audit finished with ${{ needs.audit.result }}"
+            exit 1
+          fi
+
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "Node test matrix finished with ${{ needs.test.result }}"
+            exit 1
+          fi
