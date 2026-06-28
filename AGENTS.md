@@ -4,7 +4,7 @@ AI-HIL is a local MCP stdio server that gives AI agents safe, structured access 
 
 Use the MCP server from this repository for hardware actions. Do not use raw OpenOCD commands or arbitrary shell commands for flashing, probing, or resetting hardware when an AI-HIL MCP tool is available.
 
-This file is for AI agents. Humans should start with `README.md` and `TROUBLESHOOTING.md`; agents should use this file, `AI_AGENT_QUICKSTART.md`, and `skills/aihil-config-setup/SKILL.md`.
+This file is for AI agents. Humans should start with `README.md` and `TROUBLESHOOTING.md`; agents should use this file and `AI_AGENT_QUICKSTART.md`. When working from this source checkout, the optional repository-local skill lives at `skills/aihil-config-setup/SKILL.md`.
 
 ## Supported First Path
 
@@ -23,23 +23,35 @@ Other boards may work, but do not guess target, debugger, COM port, or artifact 
 
 ## Installation Model
 
-Install the `aihil` command once on the local machine from npm with:
+Fast path for agents:
+
+1. If `aihil --version` succeeds, do not reinstall. On Windows, also try `aihil.cmd --version` before deciding AI-HIL is missing.
+2. If AI-HIL is missing, first try installing the `aihil` command once on the local machine from npm:
 
 ```bash
 npm i -g aihil
 ```
 
+3. If that npm registry install fails after Node.js/npm are available and accepted by this repository, install directly from GitHub without keeping a checkout in the firmware project:
+
+```bash
+npm i -g github:hp-8472/aihil
+```
+
+Installing from npm or GitHub installs only the `aihil` CLI/MCP server. It does not install, register, or update agent skills.
+
 If Node.js is missing or too old for AI-HIL's `engines`, do not refuse or stop at the error. Treat it as a host setup prerequisite: install or activate a supported Node.js/npm runtime, then rerun the AI-HIL install. Current Node.js LTS is fine, but do not pin a specific Node.js patch version unless the operator asks for that version; any runtime accepted by `package.json` is fine. Prefer an existing version manager such as `nvm`, `fnm`, Volta, or `asdf`, or the local platform package manager such as `winget install OpenJS.NodeJS.LTS` on Windows or `brew install node` on macOS. If no safe local installer is apparent, ask one concise question about how the operator wants Node.js installed.
 
 Do not work around an old runtime with `--force`, `--ignore-engines`, or an older AI-HIL version. The correct fix is a supported Node.js/npm runtime.
 
-From this repository checkout, install with:
+From this repository checkout for AI-HIL development, install dependencies first and then link the checkout globally:
 
 ```bash
+npm install
 npm install --global .
 ```
 
-For local AI-HIL development and tests, use the Node.js toolchain:
+For local AI-HIL development and tests, use:
 
 ```bash
 npm install
@@ -48,9 +60,9 @@ npm test
 
 Each firmware project should have its own `.aihil/` directory with `.aihil/config.yaml` for that project's target, debugger, permissions, reports, logs, and artifact roots.
 
-Use `skills/aihil-config-setup/SKILL.md` as the agent-facing workflow for creating or fixing `.aihil/config.yaml`.
+`skills/aihil-config-setup/SKILL.md` is a repository-local agent asset, not an npm-installed file. Use it only when this repository checkout is available. Do not copy it into an agent's global skill directory unless the user explicitly asks for that.
 
-If a user says "Install this AI-HIL repo and set it up for this project", install the `aihil` command from the AI-HIL repo, then return to the firmware project and follow `skills/aihil-config-setup/SKILL.md`. Do not copy the AI-HIL source tree into the firmware project unless the user explicitly asks.
+If a user says "Install this AI-HIL repo and set it up for this project", install the `aihil` command from the AI-HIL repo, then return to the firmware project and follow this file and `AI_AGENT_QUICKSTART.md`. Do not expect a skill to be installed, and do not copy the AI-HIL source tree into the firmware project unless the user explicitly asks.
 
 ## Project Bootstrap
 
@@ -62,7 +74,7 @@ aihil doctor
 aihil mcp-config > .mcp.json
 ```
 
-The MCP client starts AI-HIL with stdio using:
+The generated MCP config starts the installed Node entrypoint directly. That is equivalent to:
 
 ```text
 aihil mcp-stdio --config .aihil/config.yaml

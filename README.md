@@ -43,6 +43,14 @@ aihil mcp-config > .mcp.json
 
 Use this path when adding AI-HIL to an existing firmware project. AI-HIL requires Node.js 16.16 or newer with npm; current Node.js LTS is recommended. If `npm i -g aihil` reports an old Node.js or `engines` error, install or activate a supported runtime first and rerun the install. Do not bypass the requirement with `--force`, `--ignore-engines`, or an older AI-HIL version. Each project gets its own `.aihil/config.yaml` for target, debugger, artifact roots, permissions, reports, logs, and optional COM ports. If setup fails, start with [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
+If you explicitly need the current GitHub repository version instead of the latest npm release, install it directly without cloning into the firmware project:
+
+```bash
+npm i -g github:hp-8472/aihil
+```
+
+The npm and GitHub npm install paths install only the `aihil` CLI/MCP server. They do not install, register, or update agent skills.
+
 ### Run the supported Nucleo demo
 
 ```bash
@@ -54,7 +62,7 @@ aihil doctor
 aihil mcp-config > .mcp.json
 ```
 
-From a local checkout of this repository, use `npm install --global .` instead of `npm i -g aihil`.
+From a local checkout of this repository for AI-HIL development, run `npm install` first, then `npm install --global .`.
 
 Build the demo firmware locally before flashing; generated ELF, HEX, and BIN files are not checked into source. The demo `.aihil/config.yaml` is intentionally local machine state. Create it with `aihil init`, then edit only host-specific fields such as a non-`PATH` OpenOCD executable or configured COM ports. Keep the firmware artifact root as `build/`.
 
@@ -144,11 +152,13 @@ AI agents can edit firmware quickly, but embedded development only speeds up whe
 
 This README is for human developers and hardware operators.
 
-Agent-facing instructions live in:
+Agent-facing instructions in this source repository live in:
 
 - [`AGENTS.md`](AGENTS.md)
 - [`AI_AGENT_QUICKSTART.md`](AI_AGENT_QUICKSTART.md)
 - [`skills/aihil-config-setup/SKILL.md`](skills/aihil-config-setup/SKILL.md)
+
+The skill file is a repository-local agent asset. It is not installed by the npm package.
 
 Troubleshooting lives in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 
@@ -189,6 +199,7 @@ Install the `aihil` command once on the local machine:
 
 ```bash
 npm i -g aihil
+aihil --version
 ```
 
 If the host has no Node.js or an old Node.js, install or activate a supported Node.js/npm runtime, then rerun the AI-HIL install. Current Node.js LTS is fine, but you do not need to install a specific Node.js patch version; any runtime accepted by `package.json` is fine. On Windows, `winget install OpenJS.NodeJS.LTS` is the usual direct path when `winget` is available. On macOS or Linux, use the local team's preferred version manager or package manager. Do not use `--force`, `--ignore-engines`, or older AI-HIL versions to bypass the runtime requirement.
@@ -196,6 +207,7 @@ If the host has no Node.js or an old Node.js, install or activate a supported No
 From this repository checkout, install the local version with:
 
 ```bash
+npm install
 npm install --global .
 ```
 
@@ -206,13 +218,11 @@ npm install
 npm test
 ```
 
-AI-HIL is a Node.js CLI. The npm package builds TypeScript during installation and installs the `aihil` executable on `PATH` when installed globally.
+AI-HIL is a Node.js CLI. Published npm packages include the built `dist/` files and install the `aihil` executable on `PATH` when installed globally. GitHub and local-checkout installs run the TypeScript build through npm lifecycle scripts.
 
 ## Distribution
 
 npm is the primary distribution channel for AI-HIL. The repository is a native Node.js CLI with `package.json`, TypeScript builds, and a package `bin` entry for the `aihil` command.
-
-PyPI is intentionally not a primary target. Publish a Python package only if AI-HIL grows a deliberate Python wrapper for Python-heavy embedded teams.
 
 When publishing to npm, use trusted publishing from GitHub Actions with OIDC and npm provenance. This avoids long-lived npm tokens in repository secrets and records the build provenance for the published package. The published CLI also includes `npm-shrinkwrap.json` so npm installs resolve the audited dependency tree used by CI.
 
@@ -312,8 +322,9 @@ The exact paths, timestamps, OpenOCD version, elapsed times, COM device names, a
   "config_path": ".aihil/config.yaml",
   "mcp": {
     "transport": "stdio",
-    "command": "aihil",
+    "command": "/absolute/path/to/node",
     "args": [
+      "/absolute/path/to/npm/node_modules/aihil/dist/main.js",
       "mcp-stdio",
       "--config",
       ".aihil/config.yaml"
@@ -466,8 +477,9 @@ Example `.mcp.json`:
 {
   "mcpServers": {
     "aihil": {
-      "command": "aihil",
+      "command": "/absolute/path/to/node",
       "args": [
+        "/absolute/path/to/npm/node_modules/aihil/dist/main.js",
         "mcp-stdio",
         "--config",
         ".aihil/config.yaml"
@@ -476,6 +488,8 @@ Example `.mcp.json`:
   }
 }
 ```
+
+The generated paths are host-specific. Committing `.mcp.json` is a project policy decision; regenerate it locally when Node.js or the global npm directory changes.
 
 `mcp-stdio` is project-scoped. Do not add `--port` to it. COM MCP tool calls provide configured `port_id` values when needed.
 
@@ -525,7 +539,7 @@ If you want an AI coding agent to set up a firmware project with AI-HIL, open th
 Install https://github.com/hp-8472/aihil and use it for this firmware project.
 ```
 
-The agent should install `aihil`, return to the firmware project, and follow `AGENTS.md`, `AI_AGENT_QUICKSTART.md`, and `skills/aihil-config-setup/SKILL.md`. It should not vendor the AI-HIL source tree into the firmware project unless you explicitly ask for that.
+The agent should install the `aihil` CLI/MCP server, return to the firmware project, and follow `AGENTS.md` and `AI_AGENT_QUICKSTART.md`. Installing `aihil` does not install an agent skill; the repository-local `skills/aihil-config-setup/SKILL.md` is available only from a source checkout. The agent should not vendor the AI-HIL source tree into the firmware project unless you explicitly ask for that.
 
 ## License
 

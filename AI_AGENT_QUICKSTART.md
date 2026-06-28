@@ -20,19 +20,31 @@ If the board, debugger, COM port, or artifact path cannot be inferred, ask one c
 
 ## Install Once
 
-Install the `aihil` command once on the local machine from npm with:
+Fast path:
+
+1. If `aihil --version` works, do not reinstall. On Windows, also try `aihil.cmd --version`.
+2. If AI-HIL is missing, install the `aihil` command once on the local machine from npm:
 
 ```bash
 npm i -g aihil
 ```
 
+3. If the user explicitly asked for the GitHub repo version, or the npm registry package rejects a Node.js version accepted by this repository, install directly from GitHub:
+
+```bash
+npm i -g github:hp-8472/aihil
+```
+
+Installing from npm or GitHub installs only the `aihil` CLI/MCP server. It does not install, register, or update agent skills.
+
 If the host has no Node.js or an old Node.js, keep going by installing or activating a supported Node.js/npm runtime, then rerun `npm i -g aihil`. Current Node.js LTS is fine, but the agent does not need to pin a specific Node.js patch version; any runtime accepted by `package.json` is fine. An outdated Node.js is a remediable setup prerequisite, not a reason to refuse the AI-HIL setup. Prefer an existing version manager such as `nvm`, `fnm`, Volta, or `asdf`, or the local platform package manager such as `winget install OpenJS.NodeJS.LTS` on Windows or `brew install node` on macOS. If the safe local install path is unclear, ask one concise question.
 
 Do not use `--force`, `--ignore-engines`, or an older AI-HIL version to bypass the Node.js requirement.
 
-From this repository checkout, install with:
+From this repository checkout for AI-HIL development, install dependencies first and then link the checkout globally:
 
 ```bash
+npm install
 npm install --global .
 ```
 
@@ -43,7 +55,7 @@ npm install
 npm test
 ```
 
-If you were given only the AI-HIL repository URL and asked to set up the current firmware project, install AI-HIL with `npm i -g aihil`, then return to the firmware project. Do not vendor the AI-HIL source tree into the firmware project.
+If you were given only the AI-HIL repository URL and asked to set up the current firmware project, install AI-HIL with the fast path above, then return to the firmware project. Do not expect a skill to be installed, and do not vendor the AI-HIL source tree into the firmware project.
 
 ## Configure Each Project
 
@@ -55,7 +67,7 @@ aihil init
 
 Edit `.aihil/config.yaml` for the local board, OpenOCD interface, target config, allowed firmware artifact roots, and any named COM ports.
 
-Agents should follow `skills/aihil-config-setup/SKILL.md` for the exact setup workflow: use `aihil init`, edit only project-specific fields, keep safety policy restrictive, then validate with `aihil doctor`.
+Agents should follow this workflow: use `aihil init`, edit only project-specific fields, keep safety policy restrictive, then validate with `aihil doctor`. If this source checkout is available, the optional repository-local `skills/aihil-config-setup/SKILL.md` contains the same setup workflow in skill form.
 
 Keep `.aihil/` with the project because it defines that project's hardware policy, reports, logs, and allowed artifact locations. Do not reinstall the MCP server inside every project.
 
@@ -69,7 +81,7 @@ Expected healthy result: `ok: true`, `tool: "aihil_doctor"`, `summary: "AI-HIL c
 
 ## Configure MCP
 
-AI-HIL uses MCP over stdio. The MCP client starts `aihil mcp-stdio` automatically from `.mcp.json`.
+AI-HIL uses MCP over stdio. The generated `.mcp.json` starts the installed Node entrypoint directly; this is equivalent to `aihil mcp-stdio` and avoids local `PATH` collisions.
 
 `mcp-stdio` does not take `--port`; it is project-scoped. COM MCP tool calls pass `port_id` as tool arguments.
 
