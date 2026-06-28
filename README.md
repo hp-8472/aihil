@@ -18,7 +18,7 @@ It turns firmware work into a hardware-in-the-loop cycle: edit, build, probe, fl
 ## Trust & Supply Chain
 
 - Public source, Apache-2.0 license, security policy, issue templates, PR template, and CODEOWNERS are part of the repository.
-- CI tests Node.js 16.16, 22, and 24 on Linux, macOS, and Windows; CodeQL scans JavaScript and TypeScript.
+- CI tests Node.js 16.16, 22, 24, and the current LTS alias on Linux, macOS, and Windows; CodeQL scans JavaScript and TypeScript.
 - Dependabot and Dependency Review watch npm and GitHub Actions dependency changes.
 - npm releases use GitHub Actions trusted publishing with OIDC and provenance.
 - The published CLI uses `npm-shrinkwrap.json` to freeze the dependency tree installed by npm.
@@ -159,7 +159,7 @@ The official reference setup is deliberately narrow:
 - Board: STM32 Nucleo-F446RE.
 - Debug probe: ST-Link, including the onboard Nucleo ST-Link.
 - Debug backend: OpenOCD.
-- Host runtime: Node.js 16.16 or newer with npm; current Node.js LTS is recommended, and CI covers Node.js 16.16, 22, and 24.
+- Host runtime: Node.js 16.16 or newer with npm; current Node.js LTS is recommended, and CI covers Node.js 16.16, 22, 24, and the current LTS alias.
 - OpenOCD interface config: `interface/stlink.cfg`.
 - OpenOCD target config: `target/stm32f4x.cfg`.
 - Firmware artifact root: `build/`.
