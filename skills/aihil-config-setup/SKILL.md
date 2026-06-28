@@ -21,7 +21,7 @@ Use STM32 Nucleo-F446RE, ST-Link, OpenOCD, Node.js 16.16 or newer with npm, `int
 
 If the board, MCU family, debugger interface, target config, COM port, or artifact root cannot be inferred from project files, ask one concise question instead of guessing.
 
-If `aihil` is not installed because Node.js is missing or too old, install or activate a supported Node.js/npm runtime before running `aihil init`. Current Node.js LTS is fine, but do not pin a specific Node.js patch version unless asked; any runtime accepted by `package.json` is fine. Do not refuse the setup for an old Node.js runtime, and do not bypass `engines` with `--force`, `--ignore-engines`, or an older AI-HIL version.
+Before installing, check `aihil --version`. On Windows, also try `aihil.cmd --version`; if that works, do not reinstall. If `aihil` is not installed because Node.js is missing or too old, install or activate a supported Node.js/npm runtime before running `aihil init`. Current Node.js LTS is fine, but do not pin a specific Node.js patch version unless asked; any runtime accepted by `package.json` is fine. Do not refuse the setup for an old Node.js runtime, and do not bypass `engines` with `--force`, `--ignore-engines`, or an older AI-HIL version.
 
 ## Safety Boundaries
 

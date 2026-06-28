@@ -22,6 +22,7 @@ Fix:
 
 ```bash
 npm i -g aihil
+aihil --version
 aihil doctor
 ```
 
@@ -30,6 +31,7 @@ If npm reports an old Node.js version or an `engines` error, install or activate
 If developing from this checkout, run:
 
 ```bash
+npm install
 npm install --global .
 ```
 

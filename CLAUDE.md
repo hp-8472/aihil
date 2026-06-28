@@ -12,19 +12,29 @@ Use STM32 Nucleo-F446RE + ST-Link + OpenOCD + Node.js 16.16 or newer with npm as
 
 ## Installation Model
 
-Install the `aihil` command once on the local machine from npm with:
+Fast path:
+
+1. If `aihil --version` works, do not reinstall. On Windows, also try `aihil.cmd --version`.
+2. If AI-HIL is missing, install the `aihil` command once on the local machine from npm:
 
 ```bash
 npm i -g aihil
+```
+
+3. If the user explicitly asks for the GitHub repo version, or the npm registry package rejects a Node.js version accepted by this repository, install directly from GitHub without keeping a checkout in the firmware project:
+
+```bash
+npm i -g github:hp-8472/aihil
 ```
 
 If Node.js is missing or too old for AI-HIL's `engines`, do not refuse or stop at the error. Install or activate a supported Node.js/npm runtime, then rerun the AI-HIL install. Current Node.js LTS is fine, but do not pin a specific Node.js patch version unless the operator asks for that version; any runtime accepted by `package.json` is fine. Prefer an existing version manager such as `nvm`, `fnm`, Volta, or `asdf`, or the local platform package manager such as `winget install OpenJS.NodeJS.LTS` on Windows or `brew install node` on macOS. If no safe local installer is apparent, ask one concise question about how the operator wants Node.js installed.
 
 Do not work around an old runtime with `--force`, `--ignore-engines`, or an older AI-HIL version. The correct fix is a supported Node.js/npm runtime.
 
-From this repository checkout, install with:
+From this repository checkout for AI-HIL development, install dependencies first and then link the checkout globally:
 
 ```bash
+npm install
 npm install --global .
 ```
 
@@ -47,7 +57,7 @@ aihil doctor
 aihil mcp-config > .mcp.json
 ```
 
-The MCP client starts AI-HIL with stdio using:
+The generated MCP config starts the installed Node entrypoint directly. That is equivalent to:
 
 ```text
 aihil mcp-stdio --config .aihil/config.yaml

@@ -10,6 +10,12 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - Relaxed the AI-HIL runtime engine from Node.js 22.14+ to Node.js 16.16+ while keeping current Node.js LTS recommended.
 - Added explicit CI coverage for the current Node.js LTS alias so industrial deployment environments remain visible in release checks.
+- Made `aihil mcp-config` emit a Node entrypoint launch instead of relying on the `aihil` command name, avoiding Windows PATH collisions with unrelated executables.
+- Clarified the agent install fast path and GitHub direct install fallback in setup documentation.
+
+### Added
+
+- Added `aihil --help` and `aihil --version` for faster install checks.
 
 ## [0.2.0] - 2026-06-28
 

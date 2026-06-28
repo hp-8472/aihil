@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { listAvailableComPorts } from "./comports.js";
@@ -68,7 +68,25 @@ interface ParsedCommand {
   eofIdleTimeoutS?: number;
 }
 
+interface McpLaunchConfig {
+  command: string;
+  args: string[];
+}
+
 export async function main(argv = process.argv.slice(2)): Promise<number> {
+  if (argv.length === 0) {
+    process.stderr.write(helpText());
+    return 2;
+  }
+  if (isHelpCommand(argv[0])) {
+    process.stdout.write(helpText());
+    return 0;
+  }
+  if (isVersionCommand(argv[0])) {
+    process.stdout.write(`${packageVersion()}\n`);
+    return 0;
+  }
+
   let args: ParsedCommand;
   try {
     args = parseArgs(argv);
@@ -215,6 +233,7 @@ export async function doctor(configPath?: string | null): Promise<JsonObject> {
   }
   const debuggerInfo = await createDebuggerBackend(config).info();
   const configDisplayPath = displayPath(config, config.configPath);
+  const mcpLaunch = mcpServerLaunch(configDisplayPath);
   return {
     ok: debuggerInfo.ok === true,
     tool: "aihil_doctor",
@@ -224,8 +243,8 @@ export async function doctor(configPath?: string | null): Promise<JsonObject> {
     config_path: config.configPath,
     mcp: {
       transport: "stdio",
-      command: "aihil",
-      args: ["mcp-stdio", "--config", configDisplayPath],
+      command: mcpLaunch.command,
+      args: mcpLaunch.args,
     },
     target: {
       name: config.target.name,
@@ -244,11 +263,15 @@ export async function doctor(configPath?: string | null): Promise<JsonObject> {
 export function mcpConfig(configPath?: string | null): JsonObject {
   return {
     mcpServers: {
-      aihil: {
-        command: "aihil",
-        args: ["mcp-stdio", "--config", configPath ?? DEFAULT_CONFIG_PATH],
-      },
+      aihil: mcpServerLaunch(configPath ?? DEFAULT_CONFIG_PATH),
     },
+  };
+}
+
+function mcpServerLaunch(configPath: string): McpLaunchConfig {
+  return {
+    command: process.execPath,
+    args: [modulePath, "mcp-stdio", "--config", configPath],
   };
 }
 
@@ -339,6 +362,31 @@ function requireValue(argv: string[], index: number, flag: string): string {
 
 function printJson(value: JsonObject): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function isHelpCommand(command: string | undefined): boolean {
+  return command === "--help" || command === "-h" || command === "help";
+}
+
+function isVersionCommand(command: string | undefined): boolean {
+  return command === "--version" || command === "-v" || command === "version";
+}
+
+function helpText(): string {
+  return `AI-HIL local MCP stdio server\n\nUsage:\n  aihil <command> [options]\n\nCommands:\n  init [--config <path>] [--force]\n  doctor [--config <path>]\n  com-ports\n  mcp-config [--config <path>]\n  mcp-stdio --config <path>\n  com-stdio --config <path> --port <port_id>\n  schema [--output <path>] [--force]\n\nOptions:\n  --help, -h       Show this help.\n  --version, -v    Show the installed version.\n`;
+}
+
+function packageVersion(): string {
+  const packagePath = path.resolve(path.dirname(modulePath), "..", "package.json");
+  try {
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as { version?: unknown };
+    if (typeof packageJson.version === "string") {
+      return packageJson.version;
+    }
+  } catch {
+    // Fall through to a stable value when running from an unusual layout.
+  }
+  return "unknown";
 }
 
 const invokedPath = process.argv[1] ? realpathOrResolve(process.argv[1]) : null;
