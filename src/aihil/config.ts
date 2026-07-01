@@ -251,7 +251,7 @@ function debugInterfaceConfig(raw: JsonObject): DebugInterfaceConfig {
   return {
     gdb_executable: optionalString(raw.gdb_executable),
     allowed_symbols: stringList(raw.allowed_symbols, []),
-    max_dump_size_bytes: Number.parseInt(String(raw.max_dump_size_bytes ?? 1024 * 1024), 10),
+    max_dump_size_bytes: positiveIntegerConfig(raw.max_dump_size_bytes, 1024 * 1024, "debug.max_dump_size_bytes"),
   };
 }
 
@@ -366,6 +366,14 @@ function stringList(value: unknown, defaultValue: string[]): string[] {
     throw new ConfigError("config_invalid", "Configuration value must be a list.");
   }
   return value.map((item) => String(item));
+}
+
+function positiveIntegerConfig(value: unknown, defaultValue: number, field: string): number {
+  const parsed = Number(value ?? defaultValue);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 1) {
+    throw new ConfigError("config_invalid", `${field} must be a finite integer >= 1.`, { field, value });
+  }
+  return parsed;
 }
 
 function isRecord(value: unknown): value is JsonObject {

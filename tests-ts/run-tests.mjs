@@ -56,6 +56,7 @@ function writeConfig(directory, options = {}) {
   const debuggerType = options.debuggerType ?? "openocd";
   const debuggerExecutable = options.debuggerExecutable ?? (debuggerType === "stlink" ? fakeStlink : fakeOpenocd);
   const gdbExecutable = options.gdbExecutable ?? fakeGdb;
+  const maxDumpSizeBytes = options.maxDumpSizeBytes ?? 1048576;
   const flashAddress = options.flashAddress ?? null;
   const canBusesYaml = options.canBusesYaml ?? "";
   const configPath = path.join(directory, ".aihil", "config.yaml");
@@ -77,7 +78,7 @@ debugger:
 debug:
   gdb_executable: ${JSON.stringify(gdbExecutable)}
   allowed_symbols: []
-  max_dump_size_bytes: 1048576
+  max_dump_size_bytes: ${maxDumpSizeBytes}
 artifacts:
   allowed_roots: ["build"]
   allowed_extensions: [".elf", ".hex", ".bin"]
@@ -267,6 +268,23 @@ test("config loads defaults", () => {
     assert.deepEqual(config.can_buses, {});
     assert.equal(config.permissions.allow_can_read, true);
     assert.equal(config.permissions.allow_can_write, true);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("config rejects non-finite debug dump size", () => {
+  const directory = tempDir();
+  try {
+    const configPath = writeConfig(directory, { maxDumpSizeBytes: ".inf" });
+    assert.throws(
+      () => loadConfig(configPath, directory),
+      (error) => {
+        assert.equal(error.errorType, "config_invalid");
+        assert.equal(error.details.field, "debug.max_dump_size_bytes");
+        return true;
+      },
+    );
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
