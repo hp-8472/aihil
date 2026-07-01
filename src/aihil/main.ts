@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { listAvailableComPorts } from "./comports.js";
@@ -8,6 +9,7 @@ import { ConfigError, configSchemaText, DEFAULT_CONFIG_PATH, displayPath, loadCo
 import { createDebuggerBackend } from "./debugger.js";
 import { runStdioServer } from "./stdio.js";
 import type { JsonObject } from "./types.js";
+import { packageVersion } from "./version.js";
 
 export const DEFAULT_CONFIG_TEMPLATE = `target:
   name: "example-target"
@@ -66,13 +68,65 @@ interface ParsedCommand {
   config?: string | null;
   force?: boolean;
   output?: string | null;
+  target?: string | null;
+  agent?: string | null;
   port?: string;
   maxReadBytes?: number | null;
   readWaitTimeoutS?: number;
   eofIdleTimeoutS?: number;
 }
 
+interface SkillAgent {
+  id: string;
+  displayName: string;
+  aliases: string[];
+  defaultTargetPath: () => string;
+  registration: "skills-directory" | "agents-md";
+}
+
+const SKILL_NAME = "aihil-config-setup";
+const SKILL_FILE = "SKILL.md";
+const AIHIL_REGISTRATION_START = "<!-- AI-HIL skill registration start -->";
+const AIHIL_REGISTRATION_END = "<!-- AI-HIL skill registration end -->";
+
+const SKILL_AGENTS: SkillAgent[] = [
+  {
+    id: "opencode",
+    displayName: "opencode",
+    aliases: ["opencode", "open-code"],
+    defaultTargetPath: () => path.join(homedir(), ".config", "opencode", "skills", SKILL_NAME, SKILL_FILE),
+    registration: "skills-directory",
+  },
+  {
+    id: "claude-code",
+    displayName: "Claude Code",
+    aliases: ["claude-code", "claude", "claude_code"],
+    defaultTargetPath: () => path.join(homedir(), ".claude", "skills", SKILL_NAME, SKILL_FILE),
+    registration: "skills-directory",
+  },
+  {
+    id: "codex",
+    displayName: "Codex",
+    aliases: ["codex", "codex-cli", "openai-codex"],
+    defaultTargetPath: () => path.join(homedir(), ".codex", "skills", SKILL_NAME, SKILL_FILE),
+    registration: "agents-md",
+  },
+];
+
 export async function main(argv = process.argv.slice(2)): Promise<number> {
+  if (argv.length === 0) {
+    process.stderr.write(helpText());
+    return 2;
+  }
+  if (isHelpCommand(argv[0])) {
+    process.stdout.write(helpText());
+    return 0;
+  }
+  if (isVersionCommand(argv[0])) {
+    process.stdout.write(`${packageVersion()}\n`);
+    return 0;
+  }
+
   let args: ParsedCommand;
   try {
     args = parseArgs(argv);
@@ -95,6 +149,11 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     }
     return result.ok ? 0 : 1;
   }
+  if (args.command === "skill-install") {
+    const result = installSkill(args.agent, args.target, Boolean(args.force));
+    printJson(result);
+    return result.ok ? 0 : 1;
+  }
   if (args.command === "doctor") {
     const result = await doctor(args.config);
     printJson(result);
@@ -104,10 +163,6 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     const result = await listAvailableComPorts();
     printJson(result);
     return result.ok ? 0 : 1;
-  }
-  if (args.command === "mcp-config") {
-    printJson(mcpConfig(args.config));
-    return 0;
   }
   if (args.command === "mcp-stdio") {
     return mcpStdio(args.config);
@@ -177,7 +232,7 @@ function initNextSteps(availableComPorts: JsonObject): string[] {
     nextSteps.push("COM port discovery failed. Run: aihil com-ports after checking the serialport installation.");
   }
   nextSteps.push("For CAN access, add a named bus under can_buses, for example adapter: socketcan, channel: can0, bitrate: 500000 on Linux.");
-  nextSteps.push("Run: aihil doctor", "Run: aihil mcp-config > .mcp.json");
+  nextSteps.push("Run: aihil doctor", "Create .mcp.json from the documented portable template if your MCP client needs project discovery.");
   return nextSteps;
 }
 
@@ -252,15 +307,188 @@ export async function doctor(configPath?: string | null): Promise<JsonObject> {
   };
 }
 
-export function mcpConfig(configPath?: string | null): JsonObject {
+export function installSkill(agent?: string | null, target?: string | null, force = false): JsonObject {
+  const requestedAgent = agent ?? "opencode";
+  const resolvedAgent = resolveSkillAgent(requestedAgent);
+  if (!resolvedAgent && !target) {
+    return {
+      ok: false,
+      error_type: "unsupported_agent",
+      summary: "AI-HIL does not know this agent's default skill directory. Provide --target to install anyway.",
+      agent: normalizeAgent(requestedAgent),
+      allowed_agents: supportedSkillAgents(),
+    };
+  }
+  const agentId = resolvedAgent?.id ?? normalizeAgent(requestedAgent);
+  const agentName = resolvedAgent?.displayName ?? agentId;
+
+  const sourcePath = bundledSkillPath();
+  const targetPath = target ?? resolvedAgent!.defaultTargetPath();
+  const sourceText = readFileSync(sourcePath, "utf8");
+  const sourceVersion = skillVersion(sourceText) ?? packageVersion();
+  if (existsSync(targetPath)) {
+    const existingText = readFileSync(targetPath, "utf8");
+    if (existingText === sourceText) {
+      const registration = registerSkill(resolvedAgent, targetPath, sourceVersion, requestedAgent);
+      return {
+        ok: true,
+        summary: `AI-HIL ${agentName} skill is already installed.`,
+        agent: agentId,
+        requested_agent: requestedAgent,
+        skill: SKILL_NAME,
+        source_path: sourcePath,
+        target_path: targetPath,
+        version: sourceVersion,
+        installed: false,
+        updated: false,
+        registered: registration?.ok === true,
+        registration,
+      };
+    }
+    const existingVersion = skillVersion(existingText);
+    if (isAihilSetupSkill(existingText) && existingVersion !== sourceVersion) {
+      mkdirSync(path.dirname(targetPath), { recursive: true });
+      writeFileSync(targetPath, sourceText, "utf8");
+      const registration = registerSkill(resolvedAgent, targetPath, sourceVersion, requestedAgent);
+      return {
+        ok: true,
+        summary: `AI-HIL ${agentName} skill updated to match the installed CLI.`,
+        agent: agentId,
+        requested_agent: requestedAgent,
+        skill: SKILL_NAME,
+        source_path: sourcePath,
+        target_path: targetPath,
+        previous_version: existingVersion,
+        version: sourceVersion,
+        installed: false,
+        updated: true,
+        registered: registration?.ok === true,
+        registration,
+      };
+    }
+    if (!force) {
+      return {
+        ok: false,
+        error_type: "skill_exists",
+        summary: "Target skill file already exists with different content and no CLI-version drift. Use --force to overwrite it.",
+        agent: agentId,
+        requested_agent: requestedAgent,
+        skill: SKILL_NAME,
+        source_path: sourcePath,
+        target_path: targetPath,
+        existing_version: existingVersion,
+        version: sourceVersion,
+      };
+    }
+  }
+
+  mkdirSync(path.dirname(targetPath), { recursive: true });
+  writeFileSync(targetPath, sourceText, "utf8");
+  const registration = registerSkill(resolvedAgent, targetPath, sourceVersion, requestedAgent);
   return {
-    mcpServers: {
-      aihil: {
-        command: "aihil",
-        args: ["mcp-stdio", "--config", configPath ?? DEFAULT_CONFIG_PATH],
-      },
-    },
+    ok: true,
+    summary: `AI-HIL ${agentName} skill installed.`,
+    agent: agentId,
+    requested_agent: requestedAgent,
+    skill: SKILL_NAME,
+    source_path: sourcePath,
+    target_path: targetPath,
+    version: sourceVersion,
+    installed: true,
+    updated: false,
+    registered: registration?.ok === true,
+    registration,
   };
+}
+
+function skillVersion(text: string): string | null {
+  const match = /^  aihil_version: "([^"]+)"$/m.exec(text);
+  return match?.[1] ?? null;
+}
+
+function isAihilSetupSkill(text: string): boolean {
+  return new RegExp(`^name: ${SKILL_NAME}$`, "m").test(text) && /^  origin: AI-HIL$/m.test(text);
+}
+
+function normalizeAgent(agent: string): string {
+  return agent.trim().toLowerCase().replace(/_/g, "-");
+}
+
+function resolveSkillAgent(agent: string): SkillAgent | null {
+  const normalized = normalizeAgent(agent);
+  return SKILL_AGENTS.find((candidate) => candidate.aliases.map(normalizeAgent).includes(normalized)) ?? null;
+}
+
+function supportedSkillAgents(): string[] {
+  return SKILL_AGENTS.map((agent) => agent.id);
+}
+
+function registerSkill(agent: SkillAgent | null, targetPath: string, version: string, requestedAgent: string): JsonObject | null {
+  if (!agent) {
+    return {
+      ok: false,
+      mode: "explicit-target",
+      summary: "No automatic agent registration is known for this agent. The skill was written to the explicit target path.",
+    };
+  }
+  if (agent.registration === "skills-directory") {
+    return {
+      ok: true,
+      mode: "skills-directory",
+      summary: `${agent.displayName} discovers installed skills from its skills directory.`,
+      path: path.dirname(targetPath),
+    };
+  }
+
+  const registrationPath = path.join(skillInstallRoot(targetPath), "AGENTS.md");
+  const block = codexRegistrationBlock(targetPath, version, requestedAgent);
+  const result = upsertMarkedBlock(registrationPath, block);
+  return {
+    ok: true,
+    mode: "agents-md",
+    summary: `${agent.displayName} registration written to AGENTS.md.`,
+    path: registrationPath,
+    updated: result.updated,
+  };
+}
+
+function skillInstallRoot(targetPath: string): string {
+  const skillDirectory = path.dirname(targetPath);
+  const skillsDirectory = path.dirname(skillDirectory);
+  if (path.basename(targetPath) === SKILL_FILE && path.basename(skillDirectory) === SKILL_NAME && path.basename(skillsDirectory) === "skills") {
+    return path.dirname(skillsDirectory);
+  }
+  return path.dirname(targetPath);
+}
+
+function codexRegistrationBlock(targetPath: string, version: string, requestedAgent: string): string {
+  return `${AIHIL_REGISTRATION_START}
+## AI-HIL Skill
+
+- Skill path: \`${targetPath}\`
+- AI-HIL version: \`${version}\`
+- AI-HIL is for embedded firmware development with local hardware-in-the-loop targets.
+- For AI-HIL setup, configuration, MCP, or embedded hardware workflows, read and follow this skill before acting.
+- If this version differs from \`aihil --version\`, run \`aihil skill-install --agent ${requestedAgent}\` and use the installed CLI as authoritative.
+${AIHIL_REGISTRATION_END}`;
+}
+
+function upsertMarkedBlock(filePath: string, block: string): { updated: boolean } {
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  const existing = existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
+  const blockPattern = new RegExp(`${escapeRegExp(AIHIL_REGISTRATION_START)}[\\s\\S]*?${escapeRegExp(AIHIL_REGISTRATION_END)}`);
+  const next = blockPattern.test(existing)
+    ? existing.replace(blockPattern, block)
+    : `${existing.trimEnd()}${existing.trimEnd() ? "\n\n" : ""}${block}\n`;
+  if (next !== existing) {
+    writeFileSync(filePath, next, "utf8");
+    return { updated: true };
+  }
+  return { updated: false };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function mcpStdio(configPath?: string | null): Promise<number> {
@@ -319,6 +547,14 @@ function parseArgs(argv: string[]): ParsedCommand {
       parsed.output = requireValue(argv, ++index, current);
       continue;
     }
+    if (current === "--target") {
+      parsed.target = requireValue(argv, ++index, current);
+      continue;
+    }
+    if (current === "--agent") {
+      parsed.agent = requireValue(argv, ++index, current);
+      continue;
+    }
     if (current === "--port") {
       parsed.port = requireValue(argv, ++index, current);
       continue;
@@ -350,6 +586,22 @@ function requireValue(argv: string[], index: number, flag: string): string {
 
 function printJson(value: JsonObject): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function isHelpCommand(command: string | undefined): boolean {
+  return command === "--help" || command === "-h" || command === "help";
+}
+
+function isVersionCommand(command: string | undefined): boolean {
+  return command === "--version" || command === "-v" || command === "version";
+}
+
+function helpText(): string {
+  return `AI-HIL local MCP stdio server\n\nUsage:\n  aihil <command> [options]\n\nCommands:\n  init [--config <path>] [--force]\n  doctor [--config <path>]\n  com-ports\n  mcp-stdio --config <path>\n  com-stdio --config <path> --port <port_id>\n  schema [--output <path>] [--force]\n  skill-install [--agent <${supportedSkillAgents().join("|")}>] [--target <path>] [--force]\n\nOptions:\n  --help, -h       Show this help.\n  --version, -v    Show the installed version.\n`;
+}
+
+function bundledSkillPath(): string {
+  return path.resolve(path.dirname(modulePath), "..", "skills", "aihil-config-setup", "SKILL.md");
 }
 
 const invokedPath = process.argv[1] ? realpathOrResolve(process.argv[1]) : null;
